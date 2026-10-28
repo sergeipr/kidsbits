@@ -295,9 +295,22 @@
     } catch (e) { handle(e); }
   }
 
-  function play(uri) {
-    const body = /^spotify:(track|episode):/.test(uri) ? { uris: [uri] } : { context_uri: uri };
-    act(id => api('PUT', '/me/player/play?device_id=' + id, body));
+  // Spotify accepts a bare episode in `uris` but silently doesn't play it on
+  // the Android app, so episodes play as their show starting at that episode
+  // (which also lets ⏭ move on to the next one).
+  function play(uri, showUri) {
+    act(async id => {
+      let body;
+      if (uri.startsWith('spotify:episode:')) {
+        showUri ||= (await api('GET', '/episodes/' + uri.split(':')[2]))?.show?.uri;
+        body = showUri ? { context_uri: showUri, offset: { uri } } : { uris: [uri] };
+      } else if (uri.startsWith('spotify:track:')) {
+        body = { uris: [uri] };
+      } else {
+        body = { context_uri: uri };
+      }
+      return api('PUT', '/me/player/play?device_id=' + id, body);
+    });
   }
 
   // A podcast tile opens its episode list; everything else plays right away.
@@ -313,7 +326,7 @@
       if (!items.length) return play(show.uri);
       episodesOf = show;
       $('go-home').textContent = '↩️';
-      renderTiles(items.map(ep => ({ uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, onTap: () => play(ep.uri) })));
+      renderTiles(items.map(ep => ({ uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, onTap: () => play(ep.uri, show.uri) })));
     } catch (e) {
       // If Spotify won't list the episodes, play the show (its newest episode).
       if (e instanceof NeedsParent) return handle(e);
@@ -586,7 +599,7 @@
       if (first) {
         await step('play episode', async () => {
           const d = await device();
-          const res = await fetch(`${API}/me/player/play?device_id=${d.id}`, { method: 'PUT', headers: { Authorization: 'Bearer ' + await accessToken(), 'Content-Type': 'application/json' }, body: JSON.stringify({ uris: [first.uri] }) });
+          const res = await fetch(`${API}/me/player/play?device_id=${d.id}`, { method: 'PUT', headers: { Authorization: 'Bearer ' + await accessToken(), 'Content-Type': 'application/json' }, body: JSON.stringify({ context_uri: show.uri, offset: { uri: first.uri } }) });
           return res.status + ' ' + await res.text();
         });
         await new Promise(r => setTimeout(r, 2500));
