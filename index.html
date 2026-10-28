@@ -30,11 +30,13 @@
     background: var(--bg);
     background-image: radial-gradient(circle at 1px 1px, rgba(255, 107, 157, .18) 2px, transparent 0);
     background-size: 28px 28px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px 16px; text-align: center;
+    text-align: center;
   }
+  [hidden] { display: none !important; }
 
-  h1 { font-size: clamp(3rem, 14vw, 6rem); margin: 0; line-height: 1.1; }
+  .view { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+
+  h1 { font-size: clamp(3rem, 14vw, 6rem); margin: 0; line-height: 1.1; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   h1 .name span { display: inline-block; animation: bob 2.4s ease-in-out infinite; }
   h1 .name span:nth-child(1) { color: var(--pink); }
   h1 .name span:nth-child(2) { color: var(--purple); animation-delay: -.8s; }
@@ -63,6 +65,56 @@
   .buttons { display: flex; flex-wrap: wrap; gap: 28px 24px; justify-content: center; }
   .buttons .music { width: min(300px, 100%); }
 
+  /* Music screen: a remote control for the Spotify app running in the background. */
+  #music-view { justify-content: flex-start; gap: 22px; }
+  .bar { width: 100%; max-width: 1100px; display: flex; align-items: center; gap: 18px; }
+  .home {
+    flex: none; width: 88px; height: 88px; border-radius: 50%; border: 0; cursor: pointer;
+    background: #fff; font-size: 2.8rem; box-shadow: 0 6px 0 #e7c6d6;
+  }
+  .home:active { transform: translateY(5px); box-shadow: 0 1px 0 #e7c6d6; }
+  .now { flex: 1; display: flex; align-items: center; gap: 18px; min-width: 0; background: #fff; border-radius: 28px; padding: 10px 14px; box-shadow: 0 6px 0 #e7c6d6; }
+  .now img, .now .ph { flex: none; width: 76px; height: 76px; border-radius: 16px; object-fit: cover; background: #ffe0ec; font-size: 2.6rem; display: grid; place-items: center; }
+  .now .title { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: start; }
+
+  .tiles { width: 100%; max-width: 1100px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 280px)); justify-content: center; gap: 24px; }
+  .tile {
+    border: 0; padding: 12px 12px 16px; border-radius: 30px; cursor: pointer; font: inherit;
+    background: #fff; color: var(--ink); box-shadow: 0 8px 0 #e7c6d6;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .tile:active { transform: translateY(6px); box-shadow: 0 2px 0 #e7c6d6; }
+  .tile.playing { outline: 6px solid var(--spotify); }
+  .tile img, .tile .ph { width: 100%; aspect-ratio: 1; border-radius: 22px; object-fit: cover; background: #ffe0ec; font-size: 4rem; display: grid; place-items: center; }
+  .tile .label { font-size: clamp(1.1rem, 2.6vw, 1.5rem); font-weight: 800; line-height: 1.2; }
+
+  .controls { display: flex; gap: 28px; justify-content: center; align-items: center; margin-top: 6px; }
+  .ctl {
+    width: 110px; height: 110px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--purple); color: #fff; font-size: 3rem; box-shadow: 0 8px 0 #6f3cb0;
+    display: grid; place-items: center;
+  }
+  .ctl.big { width: 150px; height: 150px; font-size: 4.4rem; background: var(--spotify); box-shadow: 0 10px 0 #148a3e; }
+  .ctl:active { transform: translateY(7px); box-shadow: none; }
+  .ctl svg { width: 55%; height: 55%; fill: currentColor; }
+  [dir="rtl"] .ctl.flip svg { transform: scaleX(-1); }
+
+  .notice { max-width: 700px; background: #fff; border-radius: 28px; padding: 22px 26px; box-shadow: 0 6px 0 #e7c6d6; font-size: clamp(1.2rem, 3vw, 1.7rem); }
+  .notice .music { margin-top: 16px; font-size: 1.6rem; padding: 18px 30px; animation: none; }
+
+  /* Parent panel: QR pairing with a phone. */
+  #parent { position: fixed; inset: 0; background: rgba(43, 33, 64, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
+  #parent .card { background: #fff; border-radius: 28px; padding: 26px; width: min(560px, 100%); max-height: 100%; overflow: auto; direction: ltr; text-align: left; font-family: system-ui, sans-serif; }
+  #parent h2 { margin: 0 0 8px; }
+  #parent p { color: var(--muted); margin: 6px 0; }
+  #qr { display: grid; place-items: center; margin: 14px 0; }
+  #qr svg { width: min(320px, 70vw); height: auto; }
+  #parent .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  #parent button { font: inherit; font-size: 1rem; padding: 12px 18px; border-radius: 14px; border: 1px solid #ddd; background: #f6f3f9; cursor: pointer; }
+  #parent button.primary { background: var(--spotify); color: #fff; border-color: var(--spotify); }
+  #parent code { font-size: .8rem; word-break: break-all; color: var(--muted); }
+
   @keyframes bob { 50% { transform: translateY(-10px); } }
   @keyframes wave { 0%,60%,100% { transform: rotate(0); } 10%,30% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); } }
   @keyframes pulse { 50% { scale: 1.05; } }
@@ -72,7 +124,8 @@
 </style>
 </head>
 <body>
-  <h1>היי <span class="name"><span>נ</span><span>י</span><span>ב</span></span>! <span class="wave">👋</span></h1>
+<main id="home-view" class="view">
+  <h1 id="hello">היי <span class="name"><span>נ</span><span>י</span><span>ב</span></span>! <span class="wave">👋</span></h1>
   <div class="floaters" aria-hidden="true"><span>🦄</span><span>🌸</span><span>🌈</span><span>🦋</span><span>🍓</span></div>
 
   <div class="buttons">
@@ -85,22 +138,321 @@
       הדף של אמא
     </a>
   </div>
+</main>
+
+<main id="music-view" class="view" hidden>
+  <div class="bar">
+    <button class="home" id="go-home" aria-label="הביתה">🏠</button>
+    <div class="now" id="now" hidden><span class="ph" aria-hidden="true">🎵</span><span class="title"></span></div>
+  </div>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="controls">
+    <button class="ctl flip" id="prev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button class="ctl big" id="toggle" aria-label="נגן"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="ctl flip" id="next" aria-label="הבא"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+  </div>
+</main>
+
+<div id="parent" hidden>
+  <div class="card">
+    <h2>Parent settings</h2>
+    <div id="pair-status"></div>
+    <div id="pairing" hidden>
+      <p>Scan with your phone to connect Spotify and choose the music tiles.</p>
+      <div id="qr"></div>
+      <p><code id="pair-link"></code></p>
+      <p id="pair-wait">Waiting for your phone…</p>
+    </div>
+    <div class="row">
+      <button class="primary" id="pair-start">Connect with phone</button>
+      <button id="pair-forget" hidden>Disconnect</button>
+      <button id="parent-close">Close</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  // Open the installed Spotify app; if it isn't installed, the page stays
-  // visible, so fall back to the Spotify website.
-  document.getElementById('spotify').addEventListener('click', ev => {
-    ev.preventDefault();
+  // The tablet never signs in itself: a parent scans a QR code, signs in to
+  // Spotify on their phone (setup.html), and the phone sends the Spotify
+  // refresh token and the chosen tiles back here, encrypted with a key that
+  // only travels inside the QR code, through a one-time ntfy.sh topic.
+  const STORE = 'kidsbits.spotify';
+  const RELAY = 'https://ntfy.sh/';
+  const API = 'https://api.spotify.com/v1';
+  const PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+
+  const $ = id => document.getElementById(id);
+  const load = () => { try { return JSON.parse(localStorage.getItem(STORE)) || null; } catch { return null; } };
+  const save = v => { try { v ? localStorage.setItem(STORE, JSON.stringify(v)) : localStorage.removeItem(STORE); } catch {} };
+  let cfg = load();
+
+  // Opening the Spotify app with replace() keeps the spotify: link out of the
+  // page history, so the kiosk's back button doesn't reopen Spotify later.
+  function openSpotifyApp() {
     let left = false;
     const onHide = () => { if (document.hidden) left = true; };
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('blur', () => { left = true; }, { once: true });
-    window.location.href = 'spotify:';
+    location.replace('spotify:');
     setTimeout(() => {
       document.removeEventListener('visibilitychange', onHide);
-      if (!left && !document.hidden) window.location.href = 'https://open.spotify.com/';
+      if (!left && !document.hidden) location.href = 'https://open.spotify.com/';
     }, 1500);
+  }
+
+  $('spotify').addEventListener('click', ev => {
+    ev.preventDefault();
+    if (cfg?.tiles?.length) showMusic(); else openSpotifyApp();
   });
+  $('go-home').addEventListener('click', showHome);
+
+  function showHome() {
+    $('music-view').hidden = true;
+    $('home-view').hidden = false;
+    stopPolling();
+  }
+
+  function showMusic() {
+    $('home-view').hidden = true;
+    $('music-view').hidden = false;
+    renderTiles();
+    refreshState();
+    startPolling();
+  }
+
+  // --- Spotify Web API -----------------------------------------------------
+
+  class NeedsParent extends Error {}
+
+  async function accessToken() {
+    if (!cfg) throw new NeedsParent();
+    if (cfg.at && cfg.exp > Date.now() + 60_000) return cfg.at;
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: cfg.rt, client_id: cfg.cid }),
+    });
+    if (res.status === 400 || res.status === 401) throw new NeedsParent();
+    if (!res.ok) throw new Error('token ' + res.status);
+    const t = await res.json();
+    cfg = { ...cfg, at: t.access_token, exp: Date.now() + t.expires_in * 1000, rt: t.refresh_token || cfg.rt };
+    save(cfg);
+    return cfg.at;
+  }
+
+  async function api(method, path, body, retried) {
+    const res = await fetch(API + path, {
+      method,
+      headers: { Authorization: 'Bearer ' + await accessToken(), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 401 && !retried) { cfg.exp = 0; return api(method, path, body, true); }
+    if (res.status === 204 || res.status === 202) return null;
+    const data = await res.json().catch(() => null);
+    if (!res.ok) { const e = new Error(data?.error?.message || res.status); e.status = res.status; e.reason = data?.error?.reason; throw e; }
+    return data;
+  }
+
+  // The Spotify app on this tablet is the speaker. Prefer the device we used
+  // last time, then whatever is already active, then any tablet.
+  async function device() {
+    const { devices = [] } = await api('GET', '/me/player/devices') || {};
+    const usable = devices.filter(d => !d.is_restricted);
+    const pick = usable.find(d => d.id === cfg.dev) || usable.find(d => d.is_active)
+      || usable.find(d => d.type === 'Tablet') || usable.find(d => d.type === 'Smartphone') || usable[0];
+    if (pick && pick.id !== cfg.dev) { cfg.dev = pick.id; save(cfg); }
+    return pick;
+  }
+
+  let state = null;
+
+  async function act(fn) {
+    try {
+      hideNotice();
+      const d = await device();
+      if (!d) return wakeSpotify();
+      await fn(d.id);
+      setTimeout(refreshState, 700);
+    } catch (e) { handle(e); }
+  }
+
+  function playTile(tile) {
+    const body = /^spotify:(track|episode):/.test(tile.uri) ? { uris: [tile.uri] } : { context_uri: tile.uri };
+    act(id => api('PUT', '/me/player/play?device_id=' + id, body));
+  }
+  $('toggle').addEventListener('click', () => act(id => state?.is_playing
+    ? api('PUT', '/me/player/pause?device_id=' + id)
+    : api('PUT', '/me/player/play?device_id=' + id)));
+  $('next').addEventListener('click', () => act(id => api('POST', '/me/player/next?device_id=' + id)));
+  $('prev').addEventListener('click', () => act(id => api('POST', '/me/player/previous?device_id=' + id)));
+
+  async function refreshState() {
+    if ($('music-view').hidden || document.hidden) return;
+    try {
+      state = await api('GET', '/me/player');
+      renderState();
+    } catch (e) { handle(e); }
+  }
+
+  function renderState() {
+    const item = state?.item;
+    $('toggle').innerHTML = state?.is_playing ? PAUSE_ICON : PLAY_ICON;
+    $('now').hidden = !item;
+    if (item) {
+      const img = (item.album?.images || item.images || [])[0]?.url;
+      $('now').firstElementChild.replaceWith(picture(img, '🎵'));
+      $('now').querySelector('.title').textContent = item.name;
+    }
+    const ctx = state?.context?.uri;
+    for (const b of $('tiles').children) b.classList.toggle('playing', !!ctx && b.dataset.uri === ctx);
+  }
+
+  function renderTiles() {
+    $('tiles').replaceChildren(...cfg.tiles.map(t => {
+      const b = document.createElement('button');
+      b.className = 'tile';
+      b.dataset.uri = t.uri;
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = t.name;
+      b.append(picture(t.img, t.emoji || '🎵'), label);
+      b.addEventListener('click', () => playTile(t));
+      return b;
+    }));
+  }
+
+  function picture(src, fallback) {
+    if (src) { const i = new Image(); i.src = src; i.alt = ''; return i; }
+    const s = document.createElement('span');
+    s.className = 'ph';
+    s.textContent = fallback;
+    return s;
+  }
+
+  // If Android has stopped the Spotify app, it vanishes from the device
+  // list. Opening it once brings it back; the Home button returns here.
+  function wakeSpotify() {
+    notice('המוזיקה ישנה. לוחצים כאן, ואז על 🏠 כדי לחזור.', 'להעיר את המוזיקה 🎵', openSpotifyApp);
+  }
+
+  function handle(e) {
+    if (e instanceof NeedsParent) { stopPolling(); return notice('צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
+    if (e.status === 403 && e.reason === 'PREMIUM_REQUIRED') return notice('צריך ספוטיפיי פרימיום.');
+    if (e.status === 404) return wakeSpotify();
+    console.warn(e);
+  }
+
+  function notice(text, buttonText, onClick) {
+    const n = $('notice');
+    n.replaceChildren(text);
+    if (buttonText) {
+      const b = document.createElement('button');
+      b.className = 'music';
+      b.textContent = buttonText;
+      b.addEventListener('click', onClick);
+      n.append(document.createElement('br'), b);
+    }
+    n.hidden = false;
+  }
+  function hideNotice() { $('notice').hidden = true; }
+
+  let poller;
+  function startPolling() { stopPolling(); poller = setInterval(refreshState, 4000); }
+  function stopPolling() { clearInterval(poller); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { hideNotice(); refreshState(); } });
+
+  // --- Parent panel and QR pairing ----------------------------------------
+
+  // Hold the "Hi Niv" title for two seconds to open the parent panel.
+  let holdTimer;
+  const hello = $('hello');
+  hello.addEventListener('pointerdown', () => { holdTimer = setTimeout(openParent, 2000); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) hello.addEventListener(ev, () => clearTimeout(holdTimer));
+  hello.addEventListener('contextmenu', ev => ev.preventDefault());
+
+  function openParent() {
+    $('parent').hidden = false;
+    renderParent();
+  }
+  $('parent-close').addEventListener('click', () => { $('parent').hidden = true; stopPairing(); });
+  $('pair-start').addEventListener('click', startPairing);
+  $('pair-forget').addEventListener('click', () => {
+    if (!confirm('Disconnect Spotify from this tablet?')) return;
+    cfg = null; save(null); renderParent(); showHome();
+  });
+
+  function renderParent() {
+    $('pair-status').innerHTML = '';
+    const p = document.createElement('p');
+    p.textContent = cfg
+      ? `Connected to Spotify${cfg.who ? ' as ' + cfg.who : ''}, ${cfg.tiles.length} music tiles. Sign-in from ${new Date(cfg.since).toLocaleDateString()} (Spotify asks again after about 6 months).`
+      : 'Spotify is not connected. The music button opens the Spotify app instead.';
+    $('pair-status').append(p);
+    $('pair-forget').hidden = !cfg;
+    $('pair-start').textContent = cfg ? 'Change tiles / reconnect' : 'Connect with phone';
+  }
+
+  const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+  let pairTimer;
+  async function startPairing() {
+    stopPairing();
+    const topic = 'kidsbits-' + b64u(crypto.getRandomValues(new Uint8Array(18)));
+    const keyBytes = crypto.getRandomValues(new Uint8Array(16));
+    const key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
+    const link = new URL('setup.html', location.href).href + '#t=' + topic + '&k=' + b64u(keyBytes);
+    const since = Math.floor(Date.now() / 1000) - 5;
+
+    $('pairing').hidden = false;
+    $('pair-link').textContent = link;
+    $('pair-wait').textContent = 'Waiting for your phone…';
+    await showQr(link);
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`${RELAY}${topic}/json?poll=1&since=${since}`);
+        for (const line of (await res.text()).split('\n')) {
+          if (!line.trim()) continue;
+          const msg = JSON.parse(line);
+          if (msg.event !== 'message') continue;
+          const raw = unb64u(msg.message);
+          const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
+          const data = JSON.parse(new TextDecoder().decode(plain));
+          cfg = { cid: data.cid, rt: data.rt, at: data.at, exp: data.exp, who: data.who, tiles: data.tiles, since: Date.now() };
+          save(cfg);
+          stopPairing();
+          $('pairing').hidden = true;
+          renderParent();
+          $('pair-status').firstElementChild.textContent = '✅ ' + $('pair-status').firstElementChild.textContent;
+          return;
+        }
+      } catch (e) { console.warn(e); }
+      pairTimer = setTimeout(poll, 3000);
+    };
+    poll();
+  }
+  function stopPairing() { clearTimeout(pairTimer); }
+
+  async function showQr(text) {
+    if (!window.qrcode) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.append(s);
+      });
+    }
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    $('qr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  }
 </script>
 </body>
 </html>
