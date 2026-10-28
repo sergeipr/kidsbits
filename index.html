@@ -299,7 +299,8 @@
   async function refreshState() {
     if ($('music-view').hidden || document.hidden) return;
     try {
-      state = await api('GET', '/me/player');
+      // Without additional_types, Spotify reports podcast episodes as no item.
+      state = await api('GET', '/me/player?additional_types=episode');
       renderState();
     } catch (e) { handle(e); }
   }
@@ -309,7 +310,7 @@
     $('toggle').innerHTML = state?.is_playing ? PAUSE_ICON : PLAY_ICON;
     $('now').hidden = !item;
     if (item) {
-      const img = (item.album?.images || item.images || [])[0]?.url;
+      const img = (item.album?.images || item.images || item.show?.images || [])[0]?.url;
       $('now').firstElementChild.replaceWith(picture(img, '🎵'));
       $('now').querySelector('.title').textContent = item.name;
     }
@@ -416,7 +417,7 @@
     $('diag-out').textContent = 'Checking…';
     await step('token', async () => (await accessToken(), 'ok, expires ' + new Date(cfg.exp).toLocaleTimeString()));
     await step('devices', async () => (await api('GET', '/me/player/devices'))?.devices?.map(d => `${d.name} | ${d.type} | active=${d.is_active} restricted=${d.is_restricted}`));
-    await step('player', async () => { const p = await api('GET', '/me/player'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
+    await step('player', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
     out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
     out.push('last error: ' + (lastError || 'none'));
     $('diag-out').textContent = out.join('\n\n');
