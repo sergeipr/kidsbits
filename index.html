@@ -113,14 +113,14 @@
   .playing-now .stage .eq { opacity: 1; }
   .now-title { font-size: clamp(1.4rem, 4.2vw, 2.2rem); font-weight: 800; line-height: 1.25; max-width: 90%; min-height: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-  .controls { display: flex; gap: clamp(18px, 5vw, 40px); justify-content: center; align-items: center; margin: 4px 0 18px; }
+  /* Media buttons read ⏮ ▶ ⏭ left to right everywhere, even in Hebrew. */
+  .controls { direction: ltr; display: flex; gap: clamp(18px, 5vw, 40px); justify-content: center; align-items: center; margin: 4px 0 18px; }
   .ctl {
     width: 104px; height: 104px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
     background: #fff; color: var(--purple); box-shadow: 0 7px 0 rgba(43, 33, 64, .14);
     display: grid; place-items: center; transition: transform .08s, box-shadow .08s;
   }
   .ctl svg { width: 46%; height: 46%; fill: currentColor; }
-  [dir="rtl"] .ctl.flip svg { transform: scaleX(-1); }
   .ctl:active { transform: translateY(6px); box-shadow: 0 1px 0 rgba(43, 33, 64, .14); }
   /* The big button wears a ring that fills up as the song or story goes on. */
   .play { position: relative; width: 156px; height: 156px; background: var(--spotify); color: #fff; box-shadow: 0 9px 0 #148a3e; }
@@ -222,12 +222,12 @@
     <div class="art" id="art"><span aria-hidden="true">🎧</span><div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
     <div class="now-title" id="now-title">בוחרים מה לשמוע 👇</div>
     <div class="controls">
-      <button class="ctl flip" id="prev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="ctl" id="prev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6zM20 5v14L9 12z"/></svg></button>
       <button class="ctl play" id="toggle" aria-label="נגן">
         <svg class="ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="46"/><circle class="bar" id="ring" cx="50" cy="50" r="46" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
         <svg class="icon" id="toggle-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <button class="ctl flip" id="next" aria-label="הבא"><svg viewBox="0 0 24 24"><path d="M15.5 5H18v14h-2.5zM4 5v14l11-7z"/></svg></button>
+      <button class="ctl" id="next" aria-label="הבא"><svg viewBox="0 0 24 24"><path d="M15.5 5H18v14h-2.5zM4 5v14l11-7z"/></svg></button>
     </div>
   </section>
 
@@ -309,7 +309,7 @@
   }
 
   function showMusic() {
-    episodesOf = null;
+    listOf = null;
     $('home-view').hidden = true;
     $('music-view').hidden = false;
     $('shelf-head').hidden = true;
@@ -370,7 +370,7 @@
   let state = null;     // Spotify's answer to /me/player
   let stateAt = 0;      // when it arrived, to move the progress ring between polls
   let pending = null;   // the tile just tapped, shown on the stage until Spotify catches up
-  let episodesOf = null;
+  let listOf = null;
 
   async function act(fn) {
     try {
@@ -383,19 +383,23 @@
     } catch (e) { pending = null; renderStage(); handle(e); }
   }
 
-  // Spotify accepts a bare episode in `uris` but silently doesn't play it on
-  // the Android app, so episodes play as their show starting at that episode
-  // (which also lets ⏭ move on to the next one).
-  function play(tile, showUri) {
+  // A song or episode picked from a list plays inside that list (its
+  // playlist, album or show), so ⏭ moves on to the next one. Spotify also
+  // accepts a bare episode in `uris` but silently doesn't play it on the
+  // Android app, so a lone episode plays as its show from that episode.
+  function play(tile, contextUri) {
+    const key = tile.key || tile.uri;
     pending = { uri: tile.uri, name: tile.name, img: tile.img, until: Date.now() + 8000 };
-    for (const b of $('tiles').children) b.classList.toggle('loading', b.dataset.uri === tile.uri);
+    for (const b of $('tiles').children) b.classList.toggle('loading', b.dataset.uri === key);
     renderStage();
     const uri = tile.uri;
     act(async id => {
       let body;
-      if (uri.startsWith('spotify:episode:')) {
-        showUri ||= (await api('GET', '/episodes/' + uri.split(':')[2]))?.show?.uri;
-        body = showUri ? { context_uri: showUri, offset: { uri } } : { uris: [uri] };
+      if (contextUri && contextUri !== uri) {
+        body = { context_uri: contextUri, offset: { uri } };
+      } else if (uri.startsWith('spotify:episode:')) {
+        const show = (await api('GET', '/episodes/' + uri.split(':')[2]))?.show?.uri;
+        body = show ? { context_uri: show, offset: { uri } } : { uris: [uri] };
       } else if (uri.startsWith('spotify:track:')) {
         body = { uris: [uri] };
       } else {
@@ -405,42 +409,65 @@
     });
   }
 
-  // A podcast tile opens its episode list; everything else plays right away.
+  // Podcasts, playlists and albums open a list to pick from; songs, episodes
+  // and artists play right away.
   function tapTile(tile) {
-    if (tile.uri.startsWith('spotify:show:')) showEpisodes(tile); else play(tile);
+    if (/^spotify:(show|playlist|album):/.test(tile.uri)) showList(tile); else play(tile);
   }
 
-  async function showEpisodes(show) {
-    const tileEl = [...$('tiles').children].find(b => b.dataset.uri === show.uri);
+  // The items inside a tile, as tiles. Throws if Spotify won't list them
+  // (developer-mode apps can't read some playlists, e.g. Spotify's own).
+  async function listItems(tile) {
+    const [, kind, id] = tile.uri.split(':');
+    if (kind === 'show') {
+      const items = ((await api('GET', `/shows/${id}/episodes?limit=50`))?.items || []).filter(Boolean);
+      // Niv can't read yet, so episodes get a big number: "פרק 3" → 3.
+      const nums = items.map(ep => ep.name.match(/(?:פרק|episode|ep\.?|#)\s*(\d+)/i)?.[1]);
+      const numbered = nums.some(Boolean);
+      return items.map((ep, i) => ({ uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || tile.img, num: numbered ? (nums[i] || '★') : String(i + 1) }));
+    }
+    if (kind === 'album') {
+      // Every song on an album shares its cover, so number them.
+      const items = (await api('GET', `/albums/${id}/tracks?limit=50`))?.items || [];
+      return items.filter(Boolean).map((t, i) => ({ uri: t.uri, name: t.name, img: tile.img, num: String(i + 1) }));
+    }
+    let page;
+    try { page = await api('GET', `/playlists/${id}/tracks?limit=100&market=from_token`); }
+    catch (e) { if (e instanceof NeedsParent) throw e; page = await api('GET', `/playlists/${id}/items?limit=100&market=from_token`); }
+    return (page?.items || []).map(x => x?.track || x?.item)
+      .filter(t => t?.uri && !t.is_local && t.is_playable !== false)
+      .map(t => ({ uri: t.uri, name: t.name, img: (t.album?.images || t.images || [])[0]?.url || tile.img }));
+  }
+
+  async function showList(parent) {
+    const tileEl = [...$('tiles').children].find(b => b.dataset.uri === parent.uri);
     tileEl?.classList.add('loading');
     try {
       hideNotice();
-      const page = await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=50`);
-      const items = (page?.items || []).filter(Boolean);
-      if (!items.length) return play(show);
-      episodesOf = show;
+      const items = await listItems(parent);
+      if (!items.length) { tileEl?.classList.remove('loading'); return play(parent); }
+      listOf = parent;
       const back = document.createElement('button');
       back.className = 'back';
       back.setAttribute('aria-label', 'חזרה');
       back.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.4 4 7.4 12l8 8 1.8-1.8L11 12l6.2-6.2z"/></svg>';
-      back.append(picture(show.img, '🎧'));
+      back.append(picture(parent.img, '🎧'));
       back.addEventListener('click', showMusic);
       $('shelf-head').replaceChildren(back);
       $('shelf-head').hidden = false;
-      // Niv can't read yet, so episodes get a big number: "פרק 3" → 3.
-      const nums = items.map(ep => ep.name.match(/(?:פרק|episode|ep\.?|#)\s*(\d+)/i)?.[1]);
-      const numbered = nums.some(Boolean);
-      renderTiles(items.map((ep, i) => {
-        const t = { uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, num: numbered ? (nums[i] || '★') : String(i + 1) };
-        return { ...t, onTap: () => play(t, show.uri) };
-      }));
+      const tiles = items.map(t => ({ ...t, onTap: () => play(t, parent.uri) }));
+      // Playlists and albums start with a "play everything" tile.
+      if (!parent.uri.startsWith('spotify:show:')) {
+        tiles.unshift({ key: 'all', uri: parent.uri, name: 'הכל', img: parent.img, num: '▶', onTap: () => play({ ...parent, key: 'all' }) });
+      }
+      renderTiles(tiles);
       scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       tileEl?.classList.remove('loading');
-      // If Spotify won't list the episodes, play the show (its newest episode).
       if (e instanceof NeedsParent) return handle(e);
+      // If Spotify won't list what's inside, just play the whole thing.
       lastError = describe(e);
-      play(show);
+      play(parent);
     }
   }
 
@@ -555,7 +582,7 @@
     $('tiles').replaceChildren(...tiles.map((t, i) => {
       const b = document.createElement('button');
       b.className = 'tile';
-      b.dataset.uri = t.uri;
+      b.dataset.uri = t.key || t.uri;
       b.style.setProperty('--c', COLORS[i % COLORS.length]);
       const pic = document.createElement('span');
       pic.className = 'pic';
@@ -804,6 +831,9 @@
         await new Promise(r => setTimeout(r, 2500));
         await step('after play', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { playing: p.is_playing, item: p.item?.name, type: p.currently_playing_type } : '204'; });
       }
+    }
+    for (const t of cfg.tiles.filter(t => /^spotify:(playlist|album):/.test(t.uri))) {
+      await step('songs in ' + t.name, async () => { const items = await listItems(t); return items.length + ' songs, e.g. ' + items.slice(0, 2).map(i => i.name).join(' / '); });
     }
     out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
     out.push('last error: ' + (lastError || 'none'));
