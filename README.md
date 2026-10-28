@@ -1,6 +1,6 @@
 # Niv's Page 🌈
 
-A single-page website for Niv. Everything lives in `index.html`, with no build step and no dependencies.
+A single-page website for Niv, in Hebrew. Everything lives in `index.html`, with no build step and no dependencies.
 
 - 🎧 **Music!**: a big button that opens the Spotify app on the device. If Spotify isn't installed, it opens the Spotify website instead.
 
