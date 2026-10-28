@@ -89,7 +89,8 @@
   .tile img, .tile .ph { width: 100%; aspect-ratio: 1; border-radius: 22px; object-fit: cover; background: #ffe0ec; font-size: 4rem; display: grid; place-items: center; }
   .tile .label { font-size: clamp(1.1rem, 2.6vw, 1.5rem); font-weight: 800; line-height: 1.2; }
 
-  .controls { display: flex; gap: 28px; justify-content: center; align-items: center; margin-top: 6px; }
+  /* Pinned to the bottom so a long episode list never hides the buttons. */
+  .controls { display: flex; gap: 28px; justify-content: center; align-items: center; margin-top: 6px; position: sticky; bottom: 14px; z-index: 1; }
   .ctl {
     width: 110px; height: 110px; border-radius: 50%; border: 0; cursor: pointer;
     background: var(--purple); color: #fff; font-size: 3rem; box-shadow: 0 8px 0 #6f3cb0;
