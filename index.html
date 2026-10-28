@@ -65,44 +65,113 @@
   .buttons { display: flex; flex-wrap: wrap; gap: 28px 24px; justify-content: center; }
   .buttons .music { width: min(300px, 100%); }
 
-  /* Music screen: a remote control for the Spotify app running in the background. */
-  #music-view { justify-content: flex-start; gap: 22px; }
-  .bar { width: 100%; max-width: 1100px; display: flex; align-items: center; gap: 18px; }
-  .home {
-    flex: none; width: 88px; height: 88px; border-radius: 50%; border: 0; cursor: pointer;
-    background: #fff; font-size: 2.8rem; box-shadow: 0 6px 0 #e7c6d6;
+  /* Music screen: a remote control for the Spotify app running in the
+     background. A "stage" shows what's playing; the "shelf" holds the tiles.
+     --tint comes from the current cover so the screen matches the music. */
+  #music-view {
+    --tint: 255, 107, 157;
+    display: grid; grid-template-rows: auto auto 1fr; gap: 18px;
+    align-items: start; justify-content: stretch;
+    padding: 18px 18px 28px; min-height: 100%;
+    background:
+      radial-gradient(120% 70% at 50% 0%, rgba(var(--tint), .38), transparent 70%),
+      var(--bg);
+    transition: background 1s;
   }
-  .home:active { transform: translateY(5px); box-shadow: 0 1px 0 #e7c6d6; }
-  .now { flex: 1; display: flex; align-items: center; gap: 18px; min-width: 0; background: #fff; border-radius: 28px; padding: 10px 14px; box-shadow: 0 6px 0 #e7c6d6; }
-  .now img, .now .ph { flex: none; width: 76px; height: 76px; border-radius: 16px; object-fit: cover; background: #ffe0ec; font-size: 2.6rem; display: grid; place-items: center; }
-  .now .title { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: start; }
-
-  .tiles { width: 100%; max-width: 1100px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 280px)); justify-content: center; gap: 24px; }
-  .tile {
-    border: 0; padding: 12px 12px 16px; border-radius: 30px; cursor: pointer; font: inherit;
-    background: #fff; color: var(--ink); box-shadow: 0 8px 0 #e7c6d6;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    transition: transform .08s, box-shadow .08s;
+  .topbar { display: flex; justify-content: space-between; align-items: center; }
+  .round {
+    width: 84px; height: 84px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    background: #fff; color: var(--ink); box-shadow: 0 6px 0 rgba(43, 33, 64, .14);
+    display: grid; place-items: center; transition: transform .08s, box-shadow .08s;
   }
-  .tile:active { transform: translateY(6px); box-shadow: 0 2px 0 #e7c6d6; }
-  .tile.playing { outline: 6px solid var(--spotify); }
-  .tile img, .tile .ph { width: 100%; aspect-ratio: 1; border-radius: 22px; object-fit: cover; background: #ffe0ec; font-size: 4rem; display: grid; place-items: center; }
-  .tile .label { font-size: clamp(1.1rem, 2.6vw, 1.5rem); font-weight: 800; line-height: 1.2; }
+  .round svg { width: 46%; height: 46%; fill: currentColor; }
+  .round:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(43, 33, 64, .14); }
+  .back {
+    display: flex; align-items: center; gap: 12px; border: 0; cursor: pointer; font: inherit;
+    padding: 8px 18px 8px 8px; border-radius: 999px; background: #fff; color: var(--ink);
+    box-shadow: 0 6px 0 rgba(43, 33, 64, .14); font-size: 1.4rem; font-weight: 800;
+  }
+  .back img, .back .ph { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; background: #ffe0ec; display: grid; place-items: center; font-size: 2rem; }
+  .back svg { width: 34px; height: 34px; fill: currentColor; }
+  [dir="rtl"] .back svg { transform: scaleX(-1); }
+  .back:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(43, 33, 64, .14); }
 
-  /* Pinned to the bottom so a long episode list never hides the buttons. */
-  .controls { display: flex; gap: 28px; justify-content: center; align-items: center; margin-top: 6px; position: sticky; bottom: 14px; z-index: 1; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .art {
+    position: relative; width: min(44vh, 70vw, 420px); aspect-ratio: 1; border-radius: 36px;
+    background: linear-gradient(135deg, #ffd1e3, #d9c6ff); overflow: hidden;
+    box-shadow: 0 18px 40px rgba(var(--tint), .45), 0 6px 0 rgba(43, 33, 64, .12);
+    display: grid; place-items: center; font-size: min(18vh, 30vw); transition: transform .3s;
+  }
+  .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .playing-now .art { animation: breathe 3.2s ease-in-out infinite; }
+  .eq { position: absolute; bottom: 14px; inset-inline-start: 14px; display: flex; gap: 5px; align-items: flex-end; height: 46px; padding: 8px 10px; border-radius: 16px; background: rgba(255, 255, 255, .85); opacity: 0; transition: opacity .3s; }
+  .eq i { width: 8px; height: 100%; border-radius: 4px; background: var(--pink); transform-origin: bottom; animation: eq .9s ease-in-out infinite; }
+  .eq i:nth-child(2) { background: var(--orange); animation-delay: -.3s; }
+  .eq i:nth-child(3) { background: var(--green); animation-delay: -.6s; }
+  .eq i:nth-child(4) { background: var(--blue); animation-delay: -.15s; }
+  .playing-now .stage .eq { opacity: 1; }
+  .now-title { font-size: clamp(1.4rem, 4.2vw, 2.2rem); font-weight: 800; line-height: 1.25; max-width: 90%; min-height: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .controls { display: flex; gap: clamp(18px, 5vw, 40px); justify-content: center; align-items: center; }
   .ctl {
-    width: 110px; height: 110px; border-radius: 50%; border: 0; cursor: pointer;
-    background: var(--purple); color: #fff; font-size: 3rem; box-shadow: 0 8px 0 #6f3cb0;
-    display: grid; place-items: center;
+    width: 104px; height: 104px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    background: #fff; color: var(--purple); box-shadow: 0 7px 0 rgba(43, 33, 64, .14);
+    display: grid; place-items: center; transition: transform .08s, box-shadow .08s;
   }
-  .ctl.big { width: 150px; height: 150px; font-size: 4.4rem; background: var(--spotify); box-shadow: 0 10px 0 #148a3e; }
-  .ctl:active { transform: translateY(7px); box-shadow: none; }
-  .ctl svg { width: 55%; height: 55%; fill: currentColor; }
+  .ctl svg { width: 46%; height: 46%; fill: currentColor; }
   [dir="rtl"] .ctl.flip svg { transform: scaleX(-1); }
+  .ctl:active { transform: translateY(6px); box-shadow: 0 1px 0 rgba(43, 33, 64, .14); }
+  /* The big button wears a ring that fills up as the song or story goes on. */
+  .play { position: relative; width: 156px; height: 156px; background: var(--spotify); color: #fff; box-shadow: 0 9px 0 #148a3e; }
+  .play:active { box-shadow: 0 2px 0 #148a3e; }
+  .play svg.icon { width: 44%; height: 44%; position: relative; }
+  .play svg.ring { position: absolute; inset: -11px; width: calc(100% + 22px); height: calc(100% + 22px); transform: rotate(-90deg); fill: none; }
+  .ring circle { stroke-width: 7; }
+  .ring .track { stroke: rgba(43, 33, 64, .10); }
+  .ring .bar { stroke: var(--orange); stroke-linecap: round; transition: stroke-dashoffset .9s linear; }
 
-  .notice { max-width: 700px; background: #fff; border-radius: 28px; padding: 22px 26px; box-shadow: 0 6px 0 #e7c6d6; font-size: clamp(1.2rem, 3vw, 1.7rem); }
-  .notice .music { margin-top: 16px; font-size: 1.6rem; padding: 18px 30px; animation: none; }
+  .shelf { display: grid; gap: 16px; align-content: start; }
+  .shelf-head { display: flex; justify-content: flex-start; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(190px, 42vw), 1fr)); gap: 20px; }
+  .tile {
+    --c: var(--pink);
+    position: relative; border: 0; padding: 10px 10px 14px; border-radius: 30px; cursor: pointer; font: inherit;
+    background: var(--c); color: #fff; box-shadow: 0 8px 0 rgba(43, 33, 64, .18);
+    display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+    transition: transform .1s, box-shadow .1s, opacity .2s;
+  }
+  .tile:active { transform: translateY(6px) scale(.98); box-shadow: 0 2px 0 rgba(43, 33, 64, .18); }
+  .tile .pic { position: relative; aspect-ratio: 1; border-radius: 22px; overflow: hidden; background: rgba(255, 255, 255, .35); display: grid; place-items: center; font-size: 4rem; }
+  .tile .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tile .label { font-size: clamp(1.05rem, 2.4vw, 1.35rem); font-weight: 800; line-height: 1.2; text-shadow: 0 1px 2px rgba(0, 0, 0, .25); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tile .num {
+    position: absolute; top: -10px; inset-inline-start: -10px; width: 64px; height: 64px; border-radius: 50%;
+    background: #fff; color: var(--c); font-size: 2.2rem; font-weight: 800; display: grid; place-items: center;
+    box-shadow: 0 4px 0 rgba(43, 33, 64, .18); z-index: 1;
+  }
+  .tile .eq { bottom: 10px; inset-inline-start: 10px; height: 38px; }
+  .tile.playing { transform: scale(1.03); box-shadow: 0 0 0 6px #fff, 0 0 0 12px var(--c), 0 10px 24px rgba(43, 33, 64, .25); }
+  .playing-now .tile.playing .eq { opacity: 1; }
+  .tile.loading .pic::after { content: ''; position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%; border: 8px solid rgba(255, 255, 255, .5); border-top-color: #fff; animation: spin .8s linear infinite; }
+
+  .notice {
+    display: flex; flex-direction: column; align-items: center; gap: 14px; justify-self: center;
+    max-width: 640px; background: #fff; border-radius: 30px; padding: 20px 26px;
+    box-shadow: 0 8px 0 rgba(43, 33, 64, .12); font-size: clamp(1.2rem, 3vw, 1.6rem); font-weight: 700;
+  }
+  .notice .big { font-size: 3.4rem; line-height: 1; }
+  .notice .music { font-size: 1.6rem; padding: 16px 30px; animation: none; }
+
+  /* Landscape: stage on one side, tiles on the other. */
+  @media (orientation: landscape) and (min-width: 900px) {
+    #music-view { grid-template-columns: minmax(340px, 42%) 1fr; grid-template-rows: auto 1fr; column-gap: 28px; }
+    .topbar { grid-column: 1 / -1; }
+    .stage { position: sticky; top: 18px; }
+    .art { width: min(46vh, 34vw, 440px); }
+    .notice { grid-column: 2; }
+    .shelf { grid-column: 2; grid-row: 2 / span 2; max-height: calc(100vh - 140px); overflow-y: auto; padding: 14px; margin: -14px; }
+  }
 
   /* Parent panel: QR code for the phone manage page. */
   #parent { position: fixed; inset: 0; background: rgba(43, 33, 64, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
@@ -119,6 +188,9 @@
   @keyframes bob { 50% { transform: translateY(-10px); } }
   @keyframes wave { 0%,60%,100% { transform: rotate(0); } 10%,30% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); } }
   @keyframes pulse { 50% { scale: 1.05; } }
+  @keyframes eq { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+  @keyframes breathe { 50% { transform: scale(1.025); } }
+  @keyframes spin { to { transform: rotate(1turn); } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
@@ -141,21 +213,30 @@
   </div>
 </main>
 
-<main id="music-view" class="view" hidden>
-  <div class="bar">
-    <button class="home" id="go-home" aria-label="הביתה">🏠</button>
-    <div class="now" id="now" hidden><span class="ph" aria-hidden="true">🎵</span><span class="title"></span></div>
+<main id="music-view" hidden>
+  <div class="topbar">
+    <button class="round" id="go-home" aria-label="הביתה"><svg viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg></button>
   </div>
+
+  <section class="stage">
+    <div class="art" id="art"><span aria-hidden="true">🎧</span><div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+    <div class="now-title" id="now-title">בוחרים מה לשמוע 👇</div>
+    <div class="controls">
+      <button class="ctl flip" id="prev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="ctl play" id="toggle" aria-label="נגן">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="46"/><circle class="bar" id="ring" cx="50" cy="50" r="46" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+        <svg class="icon" id="toggle-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctl flip" id="next" aria-label="הבא"><svg viewBox="0 0 24 24"><path d="M15.5 5H18v14h-2.5zM4 5v14l11-7z"/></svg></button>
+    </div>
+  </section>
 
   <div class="notice" id="notice" hidden></div>
 
-  <div class="tiles" id="tiles"></div>
-
-  <div class="controls">
-    <button class="ctl flip" id="prev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
-    <button class="ctl big" id="toggle" aria-label="נגן"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-    <button class="ctl flip" id="next" aria-label="הבא"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
-  </div>
+  <section class="shelf">
+    <div class="shelf-head" id="shelf-head" hidden></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
 </main>
 
 <div id="parent" hidden>
@@ -187,8 +268,6 @@
   const CHANNEL = 'kidsbits.channel';
   const RELAY = 'https://ntfy.sh/';
   const API = 'https://api.spotify.com/v1';
-  const PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-  const PAUSE_ICON = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
 
   const $ = id => document.getElementById(id);
   const load = key => { try { return JSON.parse(localStorage.getItem(key)) || null; } catch { return null; } };
@@ -221,7 +300,7 @@
     ev.preventDefault();
     if (connected() && cfg.tiles.length) showMusic(); else openSpotifyApp();
   });
-  $('go-home').addEventListener('click', () => episodesOf ? showMusic() : showHome());
+  $('go-home').addEventListener('click', showHome);
 
   function showHome() {
     $('music-view').hidden = true;
@@ -233,7 +312,7 @@
     episodesOf = null;
     $('home-view').hidden = true;
     $('music-view').hidden = false;
-    $('go-home').textContent = '🏠';
+    $('shelf-head').hidden = true;
     renderTiles(cfg.tiles.map(t => ({ ...t, onTap: () => tapTile(t) })));
     refreshState();
     startPolling();
@@ -283,23 +362,35 @@
     return pick;
   }
 
-  let state = null;
+  // Each tile gets its own colour, so tiles that share a cover (like the
+  // episodes of one podcast) still look different.
+  const COLORS = ['#ff6b9d', '#ff9f43', '#22b573', '#4d96ff', '#9b5de5', '#e0a800', '#ef5da8', '#14b8a6'];
+  const EQ = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+
+  let state = null;     // Spotify's answer to /me/player
+  let stateAt = 0;      // when it arrived, to move the progress ring between polls
+  let pending = null;   // the tile just tapped, shown on the stage until Spotify catches up
   let episodesOf = null;
 
   async function act(fn) {
     try {
       hideNotice();
       const d = await device();
-      if (!d) return wakeSpotify();
+      if (!d) { pending = null; renderStage(); return wakeSpotify(); }
       await fn(d.id);
       setTimeout(refreshState, 700);
-    } catch (e) { handle(e); }
+      setTimeout(refreshState, 2200);
+    } catch (e) { pending = null; renderStage(); handle(e); }
   }
 
   // Spotify accepts a bare episode in `uris` but silently doesn't play it on
   // the Android app, so episodes play as their show starting at that episode
   // (which also lets ⏭ move on to the next one).
-  function play(uri, showUri) {
+  function play(tile, showUri) {
+    pending = { uri: tile.uri, name: tile.name, img: tile.img, until: Date.now() + 8000 };
+    for (const b of $('tiles').children) b.classList.toggle('loading', b.dataset.uri === tile.uri);
+    renderStage();
+    const uri = tile.uri;
     act(async id => {
       let body;
       if (uri.startsWith('spotify:episode:')) {
@@ -316,29 +407,55 @@
 
   // A podcast tile opens its episode list; everything else plays right away.
   function tapTile(tile) {
-    if (tile.uri.startsWith('spotify:show:')) showEpisodes(tile); else play(tile.uri);
+    if (tile.uri.startsWith('spotify:show:')) showEpisodes(tile); else play(tile);
   }
 
   async function showEpisodes(show) {
+    const tileEl = [...$('tiles').children].find(b => b.dataset.uri === show.uri);
+    tileEl?.classList.add('loading');
     try {
       hideNotice();
       const page = await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=50`);
       const items = (page?.items || []).filter(Boolean);
-      if (!items.length) return play(show.uri);
+      if (!items.length) return play(show);
       episodesOf = show;
-      $('go-home').textContent = '↩️';
-      renderTiles(items.map(ep => ({ uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, onTap: () => play(ep.uri, show.uri) })));
+      const back = document.createElement('button');
+      back.className = 'back';
+      back.setAttribute('aria-label', 'חזרה');
+      back.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.4 4 7.4 12l8 8 1.8-1.8L11 12l6.2-6.2z"/></svg>';
+      back.append(picture(show.img, '🎧'));
+      back.addEventListener('click', showMusic);
+      $('shelf-head').replaceChildren(back);
+      $('shelf-head').hidden = false;
+      // Niv can't read yet, so episodes get a big number: "פרק 3" → 3.
+      const nums = items.map(ep => ep.name.match(/(?:פרק|episode|ep\.?|#)\s*(\d+)/i)?.[1]);
+      const numbered = nums.some(Boolean);
+      renderTiles(items.map((ep, i) => {
+        const t = { uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, num: numbered ? (nums[i] || '★') : String(i + 1) };
+        return { ...t, onTap: () => play(t, show.uri) };
+      }));
+      scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
+      tileEl?.classList.remove('loading');
       // If Spotify won't list the episodes, play the show (its newest episode).
       if (e instanceof NeedsParent) return handle(e);
       lastError = describe(e);
-      play(show.uri);
+      play(show);
     }
   }
 
-  $('toggle').addEventListener('click', () => act(id => state?.is_playing
-    ? api('PUT', '/me/player/pause?device_id=' + id)
-    : api('PUT', '/me/player/play?device_id=' + id)));
+  // With nothing chosen yet, the big button starts the first tile.
+  $('toggle').addEventListener('click', () => {
+    if (!state?.item && !pending) {
+      const first = $('tiles').firstElementChild;
+      return first?.click();
+    }
+    const playing = state?.is_playing;
+    if (state) { state.is_playing = !playing; stateAt = Date.now(); }
+    pending = null;
+    renderStage();
+    act(id => playing ? api('PUT', '/me/player/pause?device_id=' + id) : api('PUT', '/me/player/play?device_id=' + id));
+  });
   $('next').addEventListener('click', () => act(id => api('POST', '/me/player/next?device_id=' + id)));
   $('prev').addEventListener('click', () => act(id => api('POST', '/me/player/previous?device_id=' + id)));
 
@@ -347,36 +464,112 @@
     try {
       // Without additional_types, Spotify reports podcast episodes as no item.
       state = await api('GET', '/me/player?additional_types=episode');
-      renderState();
+      stateAt = Date.now();
+      const now = [state?.context?.uri, state?.item?.uri, state?.item?.show?.uri];
+      if (pending && (now.includes(pending.uri) || Date.now() > pending.until)) pending = null;
+      renderStage();
     } catch (e) { handle(e); }
   }
 
-  function renderState() {
+  const PLAY_PATH = '<path d="M8 5v14l11-7z"/>';
+  const PAUSE_PATH = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+
+  function renderStage() {
     const item = state?.item;
-    $('toggle').innerHTML = state?.is_playing ? PAUSE_ICON : PLAY_ICON;
-    $('now').hidden = !item;
-    if (item) {
-      const img = (item.album?.images || item.images || item.show?.images || [])[0]?.url;
-      $('now').firstElementChild.replaceWith(picture(img, '🎵'));
-      $('now').querySelector('.title').textContent = item.name;
+    const shown = pending || (item && { name: item.name, img: (item.album?.images || item.images || item.show?.images || [])[0]?.url });
+    const playing = pending ? true : !!state?.is_playing;
+    $('music-view').classList.toggle('playing-now', playing && !!shown);
+    $('toggle-icon').innerHTML = playing ? PAUSE_PATH : PLAY_PATH;
+    $('toggle').setAttribute('aria-label', playing ? 'עצור' : 'נגן');
+    $('now-title').textContent = shown?.name || 'בוחרים מה לשמוע 👇';
+    setArt(shown?.img);
+    renderRing();
+    const current = pending ? [pending.uri] : [state?.context?.uri, item?.uri, item?.show?.uri].filter(Boolean);
+    for (const b of $('tiles').children) {
+      b.classList.toggle('playing', current.includes(b.dataset.uri));
+      if (!pending) b.classList.remove('loading');
     }
-    const playing = [state?.context?.uri, item?.uri, item?.show?.uri].filter(Boolean);
-    for (const b of $('tiles').children) b.classList.toggle('playing', playing.includes(b.dataset.uri));
+  }
+
+  // The ring around the big button fills as the song or story goes on.
+  function renderRing() {
+    const dur = state?.item?.duration_ms;
+    let frac = 0;
+    if (!pending && dur && state?.progress_ms != null) {
+      frac = Math.min(1, (state.progress_ms + (state.is_playing ? Date.now() - stateAt : 0)) / dur);
+    }
+    $('ring').style.strokeDashoffset = String(100 - frac * 100);
+  }
+
+  let artSrc;
+  function setArt(src) {
+    if (src === artSrc) return;
+    artSrc = src;
+    const art = $('art');
+    art.querySelector(':scope > img, :scope > span')?.remove();
+    if (src) {
+      const i = new Image();
+      i.crossOrigin = 'anonymous';
+      i.alt = '';
+      i.onload = () => tintFrom(i);
+      i.src = src;
+      art.prepend(i);
+    } else {
+      const s = document.createElement('span');
+      s.textContent = '🎧';
+      art.prepend(s);
+      $('music-view').style.removeProperty('--tint');
+    }
+  }
+
+  // Tint the screen with the cover's average colour (Spotify's images allow
+  // cross-origin reads).
+  function tintFrom(img) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 8;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0, 8, 8);
+      const d = g.getImageData(0, 0, 8, 8).data;
+      let r = 0, gr = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
+      const n = d.length / 4;
+      $('music-view').style.setProperty('--tint', pastel(r / n, gr / n, b / n).join(', '));
+    } catch {}
+  }
+
+  // Keep the cover's hue but make it bright and soft, so dark covers don't
+  // turn the screen grey.
+  function pastel(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0;
+    if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    const s = d < .06 ? .55 : .8, l = .72;
+    const k = n => (n + h) % 6, a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 4 - k(n), 1));
+    return [f(5), f(3), f(1)].map(v => Math.round(v * 255));
   }
 
   function renderTiles(tiles) {
-    $('tiles').replaceChildren(...tiles.map(t => {
+    $('tiles').replaceChildren(...tiles.map((t, i) => {
       const b = document.createElement('button');
       b.className = 'tile';
       b.dataset.uri = t.uri;
+      b.style.setProperty('--c', COLORS[i % COLORS.length]);
+      const pic = document.createElement('span');
+      pic.className = 'pic';
+      if (t.img) { const im = new Image(); im.src = t.img; im.alt = ''; im.loading = 'lazy'; pic.append(im); } else pic.append('🎵');
+      pic.insertAdjacentHTML('beforeend', EQ);
       const label = document.createElement('span');
       label.className = 'label';
       label.textContent = t.name;
-      b.append(picture(t.img, '🎵'), label);
+      if (t.num) { const n = document.createElement('span'); n.className = 'num'; n.textContent = t.num; b.append(n); }
+      b.append(pic, label);
       b.addEventListener('click', t.onTap);
       return b;
     }));
-    if (state) renderState();
+    renderStage();
   }
 
   function picture(src, fallback) {
@@ -388,39 +581,44 @@
   }
 
   // If Android has stopped the Spotify app, it vanishes from the device
-  // list. Opening it once brings it back; the Home button returns here.
+  // list. Opening it once brings it back; the tablet's Home button returns here.
   function wakeSpotify() {
-    notice('המוזיקה ישנה. לוחצים כאן, ואז על 🏠 כדי לחזור.', 'להעיר את המוזיקה 🎵', openSpotifyApp);
+    notice('😴', 'המוזיקה נרדמה. לוחצים על הכפתור, ואז על כפתור הבית של הטאבלט כדי לחזור.', 'להעיר את המוזיקה 🎵', openSpotifyApp);
   }
 
   let lastError = '';
   const describe = e => `${new Date().toLocaleString()}: ${e.status || ''} ${e.reason || ''} ${e.message}`.replace(/\s+/g, ' ');
 
   function handle(e) {
-    if (e instanceof NeedsParent) { stopPolling(); lastError = 'Spotify sign-in expired or missing'; return notice('צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
-    if (e.status === 403 && e.reason === 'PREMIUM_REQUIRED') return notice('צריך ספוטיפיי פרימיום.');
+    if (e instanceof NeedsParent) { stopPolling(); lastError = 'Spotify sign-in expired or missing'; return notice('🔌', 'צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
+    if (e.status === 403 && e.reason === 'PREMIUM_REQUIRED') return notice('⭐', 'צריך ספוטיפיי פרימיום.');
     if (e.status === 404) return wakeSpotify();
     lastError = describe(e);
     console.warn(e);
   }
 
-  function notice(text, buttonText, onClick) {
+  function notice(emoji, text, buttonText, onClick) {
     const n = $('notice');
-    n.replaceChildren(text);
+    const big = document.createElement('span');
+    big.className = 'big';
+    big.textContent = emoji;
+    const p = document.createElement('span');
+    p.textContent = text;
+    n.replaceChildren(big, p);
     if (buttonText) {
       const b = document.createElement('button');
       b.className = 'music';
       b.textContent = buttonText;
       b.addEventListener('click', onClick);
-      n.append(document.createElement('br'), b);
+      n.append(b);
     }
     n.hidden = false;
   }
   function hideNotice() { $('notice').hidden = true; }
 
-  let poller;
-  function startPolling() { stopPolling(); poller = setInterval(refreshState, 4000); }
-  function stopPolling() { clearInterval(poller); }
+  let poller, ticker;
+  function startPolling() { stopPolling(); poller = setInterval(refreshState, 4000); ticker = setInterval(renderRing, 1000); }
+  function stopPolling() { clearInterval(poller); clearInterval(ticker); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { hideNotice(); refreshState(); } });
 
   // --- Management channel ---------------------------------------------------
