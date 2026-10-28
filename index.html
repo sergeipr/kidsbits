@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KidsBits</title>
+<meta name="description" content="A playful page of games and activities for kids.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌈</text></svg>">
+<style>
+  :root {
+    --bg: #fff8ec;
+    --ink: #2b2140;
+    --muted: #6b5f80;
+    --card: #ffffff;
+    --pink: #ff6b9d;
+    --orange: #ff9f43;
+    --yellow: #ffd93d;
+    --green: #4cd18a;
+    --blue: #4d96ff;
+    --purple: #9b5de5;
+    --shadow: 0 6px 0 rgba(43, 33, 64, .12);
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Comic Sans MS", "Chalkboard SE", "Comic Neue", "Trebuchet MS", system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    background-image: radial-gradient(circle at 1px 1px, rgba(155, 93, 229, .12) 2px, transparent 0);
+    background-size: 28px 28px;
+    line-height: 1.4;
+  }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible { outline: 4px solid var(--blue); outline-offset: 3px; }
+
+  /* Header */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255, 248, 236, .92);
+    backdrop-filter: blur(6px);
+    border-bottom: 3px dashed rgba(155, 93, 229, .25);
+  }
+  .bar {
+    max-width: 1080px; margin: 0 auto; padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .logo { font-size: 1.6rem; font-weight: 800; text-decoration: none; color: var(--ink); }
+  .logo span:nth-child(1) { color: var(--pink); }
+  .logo span:nth-child(2) { color: var(--orange); }
+  .logo span:nth-child(3) { color: var(--green); }
+  .logo span:nth-child(4) { color: var(--blue); }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav a {
+    text-decoration: none; color: var(--ink); font-weight: 700;
+    padding: 6px 12px; border-radius: 999px; background: var(--card); box-shadow: 0 3px 0 rgba(43,33,64,.12);
+  }
+  nav a:hover { background: var(--yellow); }
+  .stars {
+    font-weight: 800; background: var(--yellow); padding: 6px 14px; border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(43,33,64,.15);
+  }
+  .stars.pop { animation: pop .4s ease; }
+  @keyframes pop { 50% { transform: scale(1.35) rotate(-6deg); } }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 48px 0 24px; }
+  .hero h1 { font-size: clamp(2.2rem, 7vw, 4rem); margin: 0 0 8px; }
+  .hero h1 .wave { display: inline-block; animation: wave 1.6s ease-in-out infinite; transform-origin: 70% 70%; }
+  @keyframes wave { 0%,60%,100% { transform: rotate(0); } 10%,30% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); } }
+  .hero p { font-size: 1.25rem; color: var(--muted); margin: 0 auto 20px; max-width: 34ch; }
+  .name-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .name-row input {
+    font: inherit; font-size: 1.1rem; padding: 10px 16px; border-radius: 999px;
+    border: 3px solid var(--purple); width: min(260px, 100%); text-align: center;
+  }
+  .floaters { font-size: 2.4rem; margin-top: 18px; letter-spacing: 12px; }
+  .floaters span { display: inline-block; animation: bob 3s ease-in-out infinite; }
+  .floaters span:nth-child(2n) { animation-delay: -1.5s; }
+  .floaters span:nth-child(3n) { animation-delay: -.7s; }
+  @keyframes bob { 50% { transform: translateY(-12px); } }
+
+  /* Sections */
+  section.card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 24px; margin-top: 28px; scroll-margin-top: 90px;
+    border: 3px solid transparent;
+  }
+  section.card h2 { margin: 0 0 4px; font-size: 1.9rem; }
+  section.card .sub { margin: 0 0 18px; color: var(--muted); }
+  #animals { border-color: var(--green); }
+  #abc { border-color: var(--pink); }
+  #math { border-color: var(--blue); }
+  #memory { border-color: var(--orange); }
+  #draw { border-color: var(--purple); }
+
+  .btn {
+    border: 0; border-radius: 16px; padding: 10px 18px; font-weight: 800; font-size: 1.05rem;
+    color: #fff; background: var(--purple); box-shadow: 0 4px 0 rgba(0,0,0,.18);
+    transition: transform .08s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .btn.alt { background: var(--orange); }
+
+  /* Animals */
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .tile {
+    border: 0; border-radius: 18px; padding: 14px 6px; background: #f3fff8;
+    box-shadow: 0 4px 0 rgba(43,33,64,.12); display: flex; flex-direction: column; align-items: center; gap: 4px;
+    color: var(--ink);
+  }
+  .tile .emo { font-size: 3rem; line-height: 1; }
+  .tile b { font-size: 1.05rem; }
+  .tile small { color: var(--muted); }
+  .tile.bounce .emo { animation: pop .5s ease; }
+
+  /* ABC */
+  .abc { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+  .abc button {
+    border: 0; border-radius: 14px; font-size: 1.8rem; font-weight: 800; padding: 10px 0; color: #fff;
+    box-shadow: 0 4px 0 rgba(0,0,0,.15);
+  }
+  .abc-show {
+    margin-top: 16px; min-height: 96px; display: flex; align-items: center; justify-content: center; gap: 16px;
+    font-size: 2.2rem; font-weight: 800; background: #fff0f6; border-radius: 18px; padding: 12px; text-align: center; flex-wrap: wrap;
+  }
+  .abc-show .big { font-size: 4rem; }
+
+  /* Math */
+  .math-box { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .levels { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .levels button { border: 3px solid var(--blue); background: #fff; color: var(--blue); border-radius: 999px; padding: 6px 14px; font-weight: 800; }
+  .levels button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+  .question { font-size: clamp(2.4rem, 9vw, 4rem); font-weight: 800; }
+  .visual { font-size: 1.8rem; min-height: 2.2rem; text-align: center; max-width: 100%; word-break: break-all; }
+  .answers { display: grid; grid-template-columns: repeat(2, minmax(110px, 160px)); gap: 12px; }
+  .answers button {
+    border: 0; border-radius: 18px; font-size: 2.2rem; font-weight: 800; padding: 14px; background: var(--blue); color: #fff;
+    box-shadow: 0 5px 0 rgba(0,0,0,.18);
+  }
+  .answers button.right { background: var(--green); }
+  .answers button.wrong { background: #c9c3d6; animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .feedback { font-size: 1.4rem; font-weight: 800; min-height: 2rem; }
+
+  /* Memory */
+  .mem-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .mem-top .info { font-weight: 800; }
+  .memory { display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr); max-width: 520px; margin: 0 auto; }
+  .mcard { aspect-ratio: 1; perspective: 600px; border: 0; background: none; padding: 0; }
+  .mcard .inner {
+    position: relative; width: 100%; height: 100%; transition: transform .4s; transform-style: preserve-3d;
+  }
+  .mcard.flip .inner, .mcard.done .inner { transform: rotateY(180deg); }
+  .mcard .face {
+    position: absolute; inset: 0; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    backface-visibility: hidden; font-size: clamp(1.8rem, 8vw, 3rem); box-shadow: 0 4px 0 rgba(43,33,64,.15);
+  }
+  .mcard .back { background: repeating-linear-gradient(45deg, var(--orange), var(--orange) 10px, var(--yellow) 10px, var(--yellow) 20px); color: #fff; }
+  .mcard .front { background: #fff7e6; transform: rotateY(180deg); }
+  .mcard.done .front { background: #e3ffef; }
+
+  /* Draw */
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .swatch { width: 40px; height: 40px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 0 2px rgba(43,33,64,.2); }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--ink); }
+  .sizes button { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 4px 12px; font-weight: 800; }
+  .sizes button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .stamps button { font-size: 1.5rem; border: 0; background: #f4ecff; border-radius: 12px; padding: 4px 8px; }
+  .stamps button[aria-pressed="true"] { background: var(--purple); }
+  canvas {
+    width: 100%; aspect-ratio: 16 / 10; background: #fff; border-radius: 18px; touch-action: none;
+    border: 3px dashed rgba(155, 93, 229, .4); display: block;
+  }
+
+  footer { text-align: center; color: var(--muted); padding: 30px 16px 40px; }
+
+  /* Confetti */
+  .confetti { position: fixed; top: -20px; font-size: 1.6rem; pointer-events: none; z-index: 50; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  @media (max-width: 560px) {
+    nav { display: none; }
+    section.card { padding: 18px; }
+    .memory { gap: 6px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <a class="logo" href="#top"><span>K</span><span>i</span><span>d</span><span>s</span>Bits</a>
+    <nav aria-label="Sections">
+      <a href="#animals">🐮 Animals</a>
+      <a href="#abc">🔤 ABC</a>
+      <a href="#math">➕ Math</a>
+      <a href="#memory">🧠 Memory</a>
+      <a href="#draw">🎨 Draw</a>
+    </nav>
+    <div class="stars" id="stars" aria-live="polite">⭐ 0</div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <h1>Hi <span id="hello">friend</span>! <span class="wave">👋</span></h1>
+    <p>Play games, learn letters, count numbers and draw pictures. Collect stars as you go!</p>
+    <div class="name-row">
+      <input id="name" type="text" maxlength="20" placeholder="Type your name" aria-label="Your name">
+    </div>
+    <div class="floaters" aria-hidden="true"><span>🦄</span><span>🚀</span><span>🌈</span><span>🦖</span><span>🍭</span></div>
+  </section>
+
+  <section class="card" id="animals">
+    <h2>🐮 Animal Sounds</h2>
+    <p class="sub">Tap an animal to hear what it says!</p>
+    <div class="grid" id="animalGrid"></div>
+  </section>
+
+  <section class="card" id="abc">
+    <h2>🔤 ABC Fun</h2>
+    <p class="sub">Tap a letter to hear it and see a word.</p>
+    <div class="abc" id="abcGrid"></div>
+    <div class="abc-show" id="abcShow" aria-live="polite">Pick a letter! 👆</div>
+  </section>
+
+  <section class="card" id="math">
+    <h2>➕ Math Challenge</h2>
+    <p class="sub">Pick the right answer to win a star.</p>
+    <div class="math-box">
+      <div class="levels" role="group" aria-label="Level">
+        <button data-level="1" aria-pressed="true">🐣 Easy</button>
+        <button data-level="2" aria-pressed="false">🐥 Medium</button>
+        <button data-level="3" aria-pressed="false">🦅 Hard</button>
+      </div>
+      <div class="question" id="question"></div>
+      <div class="visual" id="visual" aria-hidden="true"></div>
+      <div class="answers" id="answers"></div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="card" id="memory">
+    <h2>🧠 Memory Match</h2>
+    <p class="sub">Flip two cards. Find all the pairs!</p>
+    <div class="mem-top">
+      <button class="btn alt" id="memReset">🔄 New game</button>
+      <span class="info" id="memInfo">Moves: 0</span>
+    </div>
+    <div class="memory" id="memGrid"></div>
+  </section>
+
+  <section class="card" id="draw">
+    <h2>🎨 Draw &amp; Stamp</h2>
+    <p class="sub">Draw with your finger or mouse. Pick a stamp to stamp stickers!</p>
+    <div class="tools">
+      <div id="swatches" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <div class="sizes" role="group" aria-label="Brush size" style="display:flex;gap:6px">
+        <button data-size="4" aria-pressed="false">S</button>
+        <button data-size="10" aria-pressed="true">M</button>
+        <button data-size="22" aria-pressed="false">L</button>
+      </div>
+      <div class="stamps" role="group" aria-label="Stamps" id="stamps" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+      <button class="btn" id="clearCanvas">🧽 Clear</button>
+      <button class="btn alt" id="saveCanvas">💾 Save</button>
+    </div>
+    <canvas id="canvas" aria-label="Drawing area"></canvas>
+  </section>
+</main>
+
+<footer>Made with 💖 for my favorite kids</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  /* ---------- Sound & speech ---------- */
+  let audio;
+  function beep(freqs, dur = 0.12) {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      freqs.forEach((f, i) => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'triangle'; o.frequency.value = f;
+        const t = audio.currentTime + i * dur;
+        g.gain.setValueAtTime(0.15, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.connect(g).connect(audio.destination);
+        o.start(t); o.stop(t + dur);
+      });
+    } catch {}
+  }
+  const happy = () => beep([523, 659, 784, 1046]);
+  const sad = () => beep([330, 262], 0.18);
+  function say(text, pitch = 1.2) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  /* ---------- Stars ---------- */
+  let stars = store.get('kb-stars', 0);
+  const starsEl = $('#stars');
+  const drawStars = () => { starsEl.textContent = '⭐ ' + stars; };
+  function addStar(n = 1) {
+    stars += n; store.set('kb-stars', stars); drawStars();
+    starsEl.classList.remove('pop'); void starsEl.offsetWidth; starsEl.classList.add('pop');
+  }
+  drawStars();
+
+  function confetti(count = 30) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const bits = ['🎉', '⭐', '🎈', '✨', '🍬', '💖'];
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('div');
+      s.className = 'confetti';
+      s.textContent = bits[Math.floor(Math.random() * bits.length)];
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.animationDuration = 2 + Math.random() * 2 + 's';
+      s.style.animationDelay = Math.random() * 0.5 + 's';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 5000);
+    }
+  }
+
+  /* ---------- Name ---------- */
+  const nameInput = $('#name'), hello = $('#hello');
+  const setName = n => { hello.textContent = n.trim() || 'friend'; };
+  nameInput.value = store.get('kb-name', '');
+  setName(nameInput.value);
+  nameInput.addEventListener('input', () => { setName(nameInput.value); store.set('kb-name', nameInput.value); });
+
+  /* ---------- Animals ---------- */
+  const animals = [
+    ['🐶', 'Dog', 'Woof woof!'], ['🐱', 'Cat', 'Meow!'], ['🐮', 'Cow', 'Moooo!'],
+    ['🐷', 'Pig', 'Oink oink!'], ['🦆', 'Duck', 'Quack quack!'], ['🐑', 'Sheep', 'Baaaa!'],
+    ['🐴', 'Horse', 'Neigh!'], ['🦁', 'Lion', 'Roarrr!'], ['🐸', 'Frog', 'Ribbit!'],
+    ['🐔', 'Chicken', 'Cluck cluck!'], ['🐝', 'Bee', 'Bzzzz!'], ['🐍', 'Snake', 'Hissss!'],
+    ['🦉', 'Owl', 'Hoo hoo!'], ['🐘', 'Elephant', 'Pawoo!'], ['🐺', 'Wolf', 'Awoooo!'],
+    ['🐵', 'Monkey', 'Ooh ooh ah ah!']
+  ];
+  const animalGrid = $('#animalGrid');
+  animals.forEach(([e, n, s]) => {
+    const b = document.createElement('button');
+    b.className = 'tile';
+    b.innerHTML = `<span class="emo">${e}</span><b>${n}</b><small>${s}</small>`;
+    b.addEventListener('click', () => {
+      say(`The ${n.toLowerCase()} says ${s}`);
+      b.classList.remove('bounce'); void b.offsetWidth; b.classList.add('bounce');
+    });
+    animalGrid.appendChild(b);
+  });
+
+  /* ---------- ABC ---------- */
+  const words = {
+    A: ['🍎', 'Apple'], B: ['🐻', 'Bear'], C: ['🐱', 'Cat'], D: ['🐶', 'Dog'], E: ['🐘', 'Elephant'],
+    F: ['🐟', 'Fish'], G: ['🍇', 'Grapes'], H: ['🏠', 'House'], I: ['🍦', 'Ice cream'], J: ['🧃', 'Juice'],
+    K: ['🪁', 'Kite'], L: ['🦁', 'Lion'], M: ['🌙', 'Moon'], N: ['🪺', 'Nest'], O: ['🐙', 'Octopus'],
+    P: ['🐧', 'Penguin'], Q: ['👸', 'Queen'], R: ['🌈', 'Rainbow'], S: ['⭐', 'Star'], T: ['🐢', 'Turtle'],
+    U: ['☂️', 'Umbrella'], V: ['🎻', 'Violin'], W: ['🐳', 'Whale'], X: ['🩻', 'X-ray'], Y: ['🪀', 'Yo-yo'],
+    Z: ['🦓', 'Zebra']
+  };
+  const palette = ['#ff6b9d', '#ff9f43', '#e0b400', '#4cd18a', '#4d96ff', '#9b5de5'];
+  const abcGrid = $('#abcGrid'), abcShow = $('#abcShow');
+  Object.keys(words).forEach((L, i) => {
+    const b = document.createElement('button');
+    b.textContent = L;
+    b.style.background = palette[i % palette.length];
+    b.addEventListener('click', () => {
+      const [e, w] = words[L];
+      abcShow.innerHTML = `<span class="big">${L}${L.toLowerCase()}</span><span class="big">${e}</span><span>${w}</span>`;
+      say(`${L}. ${L} is for ${w}`);
+    });
+    abcGrid.appendChild(b);
+  });
+
+  /* ---------- Math ---------- */
+  let level = 1, answered = false;
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const q = $('#question'), vis = $('#visual'), ans = $('#answers'), fb = $('#feedback');
+  const fruits = ['🍎', '🍌', '🍓', '🍊', '🍉', '🍒'];
+  function newQuestion() {
+    answered = false; fb.textContent = '';
+    let a, b, op, result;
+    if (level === 1) { a = rnd(1, 5); b = rnd(1, 5); op = '+'; }
+    else if (level === 2) { op = Math.random() < .5 ? '+' : '−'; a = rnd(2, 10); b = rnd(1, op === '+' ? 10 : a); }
+    else { op = ['+', '−', '×'][rnd(0, 2)]; a = rnd(2, op === '×' ? 10 : 20); b = rnd(1, op === '−' ? a : op === '×' ? 10 : 20); }
+    result = op === '+' ? a + b : op === '−' ? a - b : a * b;
+    q.textContent = `${a} ${op} ${b} = ?`;
+    const f = fruits[rnd(0, fruits.length - 1)];
+    vis.textContent = level === 1 ? `${f.repeat(a)} ➕ ${f.repeat(b)}` : '';
+    const opts = new Set([result]);
+    while (opts.size < 4) { const o = result + rnd(-5, 5); if (o >= 0) opts.add(o); }
+    ans.innerHTML = '';
+    [...opts].sort(() => Math.random() - .5).forEach(o => {
+      const btn = document.createElement('button');
+      btn.textContent = o;
+      btn.addEventListener('click', () => {
+        if (answered) return;
+        if (o === result) {
+          answered = true; btn.classList.add('right');
+          const cheers = ['Great job! 🎉', 'Awesome! 🌟', 'You got it! 🚀', 'Super! 💪', 'Brilliant! 🦄'];
+          fb.textContent = cheers[rnd(0, cheers.length - 1)];
+          happy(); addStar(); confetti(15);
+          setTimeout(newQuestion, 1400);
+        } else {
+          btn.classList.add('wrong'); btn.disabled = true;
+          fb.textContent = 'Try again! 💛'; sad();
+        }
+      });
+      ans.appendChild(btn);
+    });
+  }
+  document.querySelectorAll('.levels button').forEach(b => b.addEventListener('click', () => {
+    level = +b.dataset.level;
+    document.querySelectorAll('.levels button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    newQuestion();
+  }));
+  newQuestion();
+
+  /* ---------- Memory ---------- */
+  const memEmoji = ['🦄', '🐼', '🦊', '🐙', '🦋', '🐢', '🍕', '🚀'];
+  const memGrid = $('#memGrid'), memInfo = $('#memInfo');
+  let first = null, lock = false, moves = 0, found = 0;
+  function newMemory() {
+    memGrid.innerHTML = ''; first = null; lock = false; moves = 0; found = 0;
+    memInfo.textContent = 'Moves: 0';
+    [...memEmoji, ...memEmoji].sort(() => Math.random() - .5).forEach(e => {
+      const c = document.createElement('button');
+      c.className = 'mcard'; c.dataset.e = e; c.setAttribute('aria-label', 'Hidden card');
+      c.innerHTML = `<div class="inner"><div class="face back">?</div><div class="face front">${e}</div></div>`;
+      c.addEventListener('click', () => flip(c));
+      memGrid.appendChild(c);
+    });
+  }
+  function flip(c) {
+    if (lock || c === first || c.classList.contains('done')) return;
+    c.classList.add('flip'); c.setAttribute('aria-label', c.dataset.e); beep([600], .06);
+    if (!first) { first = c; return; }
+    moves++; memInfo.textContent = 'Moves: ' + moves;
+    if (first.dataset.e === c.dataset.e) {
+      first.classList.add('done'); c.classList.add('done'); first = null; found++;
+      happy();
+      if (found === memEmoji.length) {
+        memInfo.textContent = `You won in ${moves} moves! 🏆`;
+        addStar(3); confetti(50); say('You found them all! Great memory!');
+      }
+    } else {
+      lock = true;
+      const a = first; first = null;
+      setTimeout(() => {
+        a.classList.remove('flip'); c.classList.remove('flip');
+        a.setAttribute('aria-label', 'Hidden card'); c.setAttribute('aria-label', 'Hidden card');
+        lock = false;
+      }, 900);
+    }
+  }
+  $('#memReset').addEventListener('click', newMemory);
+  newMemory();
+
+  /* ---------- Draw ---------- */
+  const canvas = $('#canvas'), ctx = canvas.getContext('2d');
+  const colors = ['#2b2140', '#ff6b9d', '#ff9f43', '#ffd93d', '#4cd18a', '#4d96ff', '#9b5de5', '#8b5a2b', '#ffffff'];
+  const stampList = ['⭐', '❤️', '🌸', '🦋', '🐱', '☀️'];
+  let color = colors[1], size = 10, stamp = null, drawing = false, last = null;
+
+  function fitCanvas() {
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    const snapshot = canvas.width ? canvas.toDataURL() : null;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, r.width, r.height);
+    if (snapshot) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, r.width, r.height); img.src = snapshot; }
+  }
+  fitCanvas();
+  let resizeT; window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(fitCanvas, 150); });
+
+  const swatches = $('#swatches');
+  colors.forEach(c => {
+    const s = document.createElement('button');
+    s.className = 'swatch'; s.style.background = c; s.setAttribute('aria-label', 'Color ' + c);
+    s.setAttribute('aria-pressed', c === color);
+    s.addEventListener('click', () => {
+      color = c; stamp = null;
+      swatches.querySelectorAll('.swatch').forEach(x => x.setAttribute('aria-pressed', x === s));
+      stampsEl.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', false));
+    });
+    swatches.appendChild(s);
+  });
+  document.querySelectorAll('.sizes button').forEach(b => b.addEventListener('click', () => {
+    size = +b.dataset.size;
+    document.querySelectorAll('.sizes button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  }));
+  const stampsEl = $('#stamps');
+  stampList.forEach(e => {
+    const b = document.createElement('button');
+    b.textContent = e; b.setAttribute('aria-pressed', false); b.setAttribute('aria-label', 'Stamp ' + e);
+    b.addEventListener('click', () => {
+      stamp = stamp === e ? null : e;
+      stampsEl.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.textContent === stamp));
+    });
+    stampsEl.appendChild(b);
+  });
+
+  const pos = ev => { const r = canvas.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
+  canvas.addEventListener('pointerdown', ev => {
+    const p = pos(ev);
+    if (stamp) {
+      ctx.font = `${size * 3 + 20}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(stamp, p.x, p.y); beep([880], .05); return;
+    }
+    drawing = true; last = p; canvas.setPointerCapture(ev.pointerId);
+    ctx.beginPath(); ctx.fillStyle = color; ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill();
+  });
+  canvas.addEventListener('pointermove', ev => {
+    if (!drawing) return;
+    const p = pos(ev);
+    ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => canvas.addEventListener(t, () => { drawing = false; }));
+  $('#clearCanvas').addEventListener('click', () => {
+    const r = canvas.getBoundingClientRect();
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, r.width, r.height);
+  });
+  $('#saveCanvas').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = 'my-drawing.png'; a.href = canvas.toDataURL('image/png'); a.click();
+    addStar();
+  });
+})();
+</script>
+</body>
+</html>
