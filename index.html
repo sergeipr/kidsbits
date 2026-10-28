@@ -172,6 +172,11 @@
       <button id="pair-forget" hidden>Disconnect</button>
       <button id="parent-close">Close</button>
     </div>
+    <details id="diag" hidden>
+      <summary>Diagnostics</summary>
+      <p><button id="diag-run">Check Spotify</button></p>
+      <pre id="diag-out" style="white-space: pre-wrap; font-size: .8rem;"></pre>
+    </details>
   </div>
 </div>
 
@@ -344,8 +349,10 @@
     if (e instanceof NeedsParent) { stopPolling(); return notice('צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
     if (e.status === 403 && e.reason === 'PREMIUM_REQUIRED') return notice('צריך ספוטיפיי פרימיום.');
     if (e.status === 404) return wakeSpotify();
+    lastError = `${new Date().toLocaleTimeString()} ${e.status || ''} ${e.reason || ''} ${e.message}`;
     console.warn(e);
   }
+  let lastError = '';
 
   function notice(text, buttonText, onClick) {
     const n = $('notice');
@@ -394,8 +401,26 @@
       : 'Spotify is not connected. The music button opens the Spotify app instead.';
     $('pair-status').append(p);
     $('pair-forget').hidden = !cfg;
+    $('diag').hidden = !cfg;
     $('pair-start').textContent = cfg ? 'Change tiles / reconnect' : 'Connect with phone';
   }
+
+  // Shows what Spotify sees, to debug playback without a browser console.
+  $('diag-run').addEventListener('click', async () => {
+    const out = [];
+    const step = async (label, fn) => {
+      try { out.push(label + ': ' + JSON.stringify(await fn(), null, 1)); }
+      catch (e) { out.push(`${label}: ERROR ${e.status || ''} ${e.reason || ''} ${e.message}`); }
+      $('diag-out').textContent = out.join('\n\n');
+    };
+    $('diag-out').textContent = 'Checking…';
+    await step('token', async () => (await accessToken(), 'ok, expires ' + new Date(cfg.exp).toLocaleTimeString()));
+    await step('devices', async () => (await api('GET', '/me/player/devices'))?.devices?.map(d => `${d.name} | ${d.type} | active=${d.is_active} restricted=${d.is_restricted}`));
+    await step('player', async () => { const p = await api('GET', '/me/player'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
+    out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
+    out.push('last error: ' + (lastError || 'none'));
+    $('diag-out').textContent = out.join('\n\n');
+  });
 
   const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
