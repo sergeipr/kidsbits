@@ -580,7 +580,19 @@
     await step('devices', async () => (await api('GET', '/me/player/devices'))?.devices?.map(d => `${d.name} | ${d.type} | active=${d.is_active} restricted=${d.is_restricted}`));
     await step('player', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
     const show = cfg.tiles.find(t => t.uri.startsWith('spotify:show:'));
-    if (show) await step('episodes', async () => (await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=3`))?.items?.map(e => e?.name));
+    if (show) {
+      let first;
+      await step('episodes', async () => { const items = (await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=3`))?.items || []; first = items[0]; return items.map(e => e?.name + ' ' + e?.uri); });
+      if (first) {
+        await step('play episode', async () => {
+          const d = await device();
+          const res = await fetch(`${API}/me/player/play?device_id=${d.id}`, { method: 'PUT', headers: { Authorization: 'Bearer ' + await accessToken(), 'Content-Type': 'application/json' }, body: JSON.stringify({ uris: [first.uri] }) });
+          return res.status + ' ' + await res.text();
+        });
+        await new Promise(r => setTimeout(r, 2500));
+        await step('after play', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { playing: p.is_playing, item: p.item?.name, type: p.currently_playing_type } : '204'; });
+      }
+    }
     out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
     out.push('last error: ' + (lastError || 'none'));
     $('diag-out').textContent = out.join('\n\n');
