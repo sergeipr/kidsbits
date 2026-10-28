@@ -3,237 +3,272 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Niv's music setup</title>
+<title>Niv's tablet</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#1db954">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 <style>
-  :root { --ink: #2b2140; --muted: #6b5f80; --bg: #fff3f8; --line: #eedbe5; --spotify: #1db954; --pink: #ff6b9d; }
+  :root { --ink: #2b2140; --muted: #6b5f80; --bg: #fff3f8; --line: #eedbe5; --spotify: #1db954; --warn: #8a1c2b; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
-  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 120px; }
-  h1 { font-size: 1.6rem; margin: 0 0 6px; }
-  h2 { font-size: 1.1rem; margin: 28px 0 10px; }
-  p { color: var(--muted); line-height: 1.45; }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 110px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 26px 0 10px; }
+  p { color: var(--muted); line-height: 1.45; margin: 6px 0; }
   [hidden] { display: none !important; }
   button, input { font: inherit; }
-  .btn { display: inline-block; border: 0; border-radius: 999px; padding: 14px 22px; background: var(--spotify); color: #fff; font-weight: 700; cursor: pointer; }
+  .card { background: #fff; border-radius: 16px; padding: 14px 16px; }
+  .btn { border: 0; border-radius: 999px; padding: 12px 20px; background: var(--spotify); color: #fff; font-weight: 700; cursor: pointer; }
   .btn.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
   .btn:disabled { opacity: .5; cursor: default; }
-  .err { background: #ffe8ea; color: #8a1c2b; padding: 12px 14px; border-radius: 12px; }
+  .err { background: #ffe8ea; color: var(--warn); padding: 12px 14px; border-radius: 12px; }
+  .ok { color: #0d7a3a; }
+  .bad { color: var(--warn); }
 
-  .list { display: grid; gap: 8px; }
-  .item { display: flex; align-items: center; gap: 12px; background: #fff; border: 2px solid transparent; border-radius: 14px; padding: 8px; cursor: pointer; text-align: left; width: 100%; color: inherit; }
-  .item.on { border-color: var(--spotify); }
-  .item img, .item .ph { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; background: #ffe0ec; display: grid; place-items: center; font-size: 1.5rem; flex: none; }
-  .item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .item .num { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; flex: none; }
-  .item.on .num { background: var(--spotify); border-color: var(--spotify); color: #fff; }
-
-  .chosen { display: grid; gap: 8px; }
-  .chosen .row { display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 14px; padding: 8px; }
-  .chosen img, .chosen .ph { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #ffe0ec; display: grid; place-items: center; flex: none; }
-  .chosen input { flex: 1; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; direction: auto; }
-  .chosen .x { border: 0; background: none; font-size: 1.3rem; cursor: pointer; color: var(--muted); }
+  .rows { display: grid; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 14px; padding: 8px; }
+  .row img, .row .ph { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: #ffe0ec; display: grid; place-items: center; flex: none; font-size: 1.4rem; }
+  .row input { flex: 1; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+  .row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .kind { font-size: .75rem; color: var(--muted); }
+  .icon { border: 0; background: none; font-size: 1.2rem; cursor: pointer; color: var(--muted); padding: 6px; }
   .add { display: flex; gap: 8px; }
   .add input { flex: 1; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
-
   .footer { position: fixed; inset: auto 0 0 0; background: #fff; border-top: 1px solid var(--line); padding: 12px 16px; display: flex; gap: 12px; justify-content: center; align-items: center; }
+  details summary { cursor: pointer; color: var(--muted); }
 </style>
 </head>
 <body>
 <main>
-  <h1>🎧 Niv's music setup</h1>
+  <h1>🎧 Niv's tablet</h1>
 
-  <section id="v-intro" hidden>
-    <p>This connects the kiosk tablet to your Spotify account and lets you choose the big music tiles Niv sees. You'll sign in to Spotify on this phone; the tablet only receives what it needs to play music.</p>
-    <button class="btn" id="signin">Sign in with Spotify</button>
+  <section id="v-nolink" hidden>
+    <p>Open this page from the QR code on the tablet: hold the <b>היי ניב</b> title on the tablet for two seconds, then scan the code. Then add this page to your home screen.</p>
   </section>
 
-  <section id="v-noqr" hidden>
-    <p>Open this page by scanning the QR code on the tablet: hold the <b>היי ניב</b> title on the tablet for two seconds, then tap <b>Connect with phone</b>.</p>
-  </section>
+  <section id="v-main" hidden>
+    <div class="card" id="status"><p>Connecting to the tablet…</p></div>
 
-  <section id="v-noclient" hidden>
-    <p class="err">This page isn't set up yet: the Spotify Client ID is missing in <code>setup.html</code>.</p>
-  </section>
+    <h2>Music tiles</h2>
+    <p id="no-tiles">No tiles yet. Add playlists, albums or podcasts below.</p>
+    <div class="rows" id="tiles"></div>
 
-  <section id="v-pick" hidden>
-    <p id="who"></p>
-    <h2>Tiles on the tablet (in this order)</h2>
-    <p id="none-chosen">Tap playlists below to add them. 4–6 works well.</p>
-    <div class="chosen" id="chosen"></div>
-
-    <h2>Add an album, playlist or artist by link</h2>
-    <p>In Spotify: <b>⋯ → Share → Copy link</b>, then paste it here.</p>
+    <h2>Add by link</h2>
+    <p>In Spotify, open a playlist, album, artist, podcast or episode: <b>⋯ → Share → Copy link</b>, then paste it here. Podcasts show Niv a list of episodes to choose from.</p>
     <form class="add" id="add-form">
       <input id="add-url" type="url" placeholder="https://open.spotify.com/…" autocomplete="off">
       <button class="btn secondary">Add</button>
     </form>
 
-    <h2>Your playlists</h2>
-    <div class="list" id="playlists"><p>Loading…</p></div>
-  </section>
+    <h2>From your Spotify</h2>
+    <div id="signed-out">
+      <p>Sign in to pick from your own playlists and followed podcasts. Your sign-in stays on this phone and isn't sent to the tablet.</p>
+      <p id="cid-row" hidden>Spotify Client ID (from your app in the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify developer dashboard</a>):<br>
+        <input id="cid" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:10px; margin-top:6px" autocomplete="off" spellcheck="false"></p>
+      <button class="btn secondary" id="signin">Sign in with Spotify</button>
+    </div>
+    <div id="signed-in" hidden>
+      <p id="who"></p>
+      <h2>Your playlists</h2>
+      <div class="rows" id="my-playlists"><p>Loading…</p></div>
+      <h2>Your podcasts</h2>
+      <div class="rows" id="my-shows"><p>Loading…</p></div>
+      <h2>Tablet's Spotify account</h2>
+      <p>The tablet plays music from one Spotify account (it needs Premium). To make it this account, for example when the tablet says a parent needs to reconnect:</p>
+      <button class="btn secondary" id="use-account">Use this account on the tablet</button>
+    </div>
 
-  <section id="v-done" hidden>
-    <h2>✅ Sent to the tablet</h2>
-    <p>The tablet should show "Connected" within a few seconds. You can close this page.</p>
+    <h2>About this page</h2>
+    <p>Add it to your home screen to manage the tablet any time. Anyone with this page's link can manage the tablet's music, so only share it with family. The tablet's parent panel can make a new link, which stops old ones from working.</p>
   </section>
 
   <p class="err" id="error" hidden></p>
 </main>
 
 <div class="footer" id="footer" hidden>
-  <button class="btn" id="send" disabled>Send to tablet</button>
+  <span id="dirty-note">Unsaved changes</span>
+  <button class="btn" id="save">Save to tablet</button>
 </div>
 
 <script>
-  // Create an app at https://developer.spotify.com/dashboard with this page's
-  // URL as its redirect URI, then paste its Client ID here. It isn't secret.
-  const CLIENT_ID = '1995a58e13804a15959a54b22abc094c';
-  const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative';
+  // This page manages the kiosk tablet (index.html) through its private
+  // ntfy.sh topic. The link's #t=topic&k=key comes from the tablet's QR code;
+  // every message is encrypted with that key, so ntfy.sh only sees ciphertext.
   const RELAY = 'https://ntfy.sh/';
-  const MAX_TILES = 8;
+  const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative user-library-read';
+  const MAX_TILES = 12;
 
   const $ = id => document.getElementById(id);
-  const show = id => { for (const s of document.querySelectorAll('main > section')) s.hidden = s.id !== id; };
   const fail = msg => { $('error').textContent = msg; $('error').hidden = false; };
+  const clearError = () => { $('error').hidden = true; };
   const b64u = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
   const redirectUri = location.origin + location.pathname;
 
-  // The QR code's #t=topic&k=key would be lost on the Spotify redirect, so
-  // keep it for this tab only.
+  // Keep the link in localStorage too: the Spotify sign-in redirect drops the
+  // #fragment, and a home-screen shortcut may open the page without it.
   const hash = new URLSearchParams(location.hash.slice(1));
-  if (hash.get('t') && hash.get('k')) {
-    sessionStorage.setItem('kb.pair', JSON.stringify({ t: hash.get('t'), k: hash.get('k') }));
-    history.replaceState(null, '', redirectUri);
-  }
-  const pair = JSON.parse(sessionStorage.getItem('kb.pair') || 'null');
+  if (hash.get('t') && hash.get('k')) localStorage.setItem('kb.link', JSON.stringify({ t: hash.get('t'), k: hash.get('k') }));
+  const link = JSON.parse(localStorage.getItem('kb.link') || 'null');
 
-  let token = null;
-  let chosen = [];
+  let key, tablet = null, tiles = [], dirty = false;
+  const waiting = new Map();
 
   start().catch(e => fail(e.message));
 
   async function start() {
-    if (!CLIENT_ID) return show('v-noclient');
-    if (!pair) return show('v-noqr');
+    if (!link) { $('v-nolink').hidden = false; return; }
+    $('v-main').hidden = false;
+    key = await crypto.subtle.importKey('raw', unb64u(link.k), 'AES-GCM', false, ['encrypt', 'decrypt']);
+    listen();
     const q = new URLSearchParams(location.search);
-    if (q.get('error')) { show('v-intro'); return fail('Spotify sign-in was cancelled: ' + q.get('error')); }
-    if (q.get('code')) return finishSignIn(q);
-    show('v-intro');
+    if (q.get('code') || q.get('error')) await finishSignIn(q);
+    else if (token()) showSignedIn();
+    await refresh();
   }
 
-  $('signin').addEventListener('click', async () => {
-    const verifier = b64u(crypto.getRandomValues(new Uint8Array(48)));
-    const state = b64u(crypto.getRandomValues(new Uint8Array(16)));
-    const challenge = b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
-    sessionStorage.setItem('kb.pkce', JSON.stringify({ verifier, state }));
-    location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
-      client_id: CLIENT_ID, response_type: 'code', redirect_uri: redirectUri, scope: SCOPES,
-      code_challenge_method: 'S256', code_challenge: challenge, state,
+  // --- Channel to the tablet -------------------------------------------------
+
+  async function seal(obj) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+    return b64u([...iv, ...new Uint8Array(sealed)]);
+  }
+
+  function listen() {
+    const events = new EventSource(`${RELAY}${link.t}/sse`);
+    events.onmessage = async ev => {
+      try {
+        const m = JSON.parse(ev.data);
+        if (m.event !== 'message') return;
+        const raw = unb64u(m.message);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
+        const msg = JSON.parse(new TextDecoder().decode(plain));
+        if (msg.from !== 'tablet' || msg.type !== 'state') return;
+        onState(msg);
+        waiting.get(msg.re)?.(msg);
+        waiting.delete(msg.re);
+      } catch {}
+    };
+  }
+
+  // Send a command and wait for the tablet's state reply.
+  async function send(cmd, timeout = 15000) {
+    const id = b64u(crypto.getRandomValues(new Uint8Array(9)));
+    const reply = new Promise((resolve, reject) => {
+      waiting.set(id, resolve);
+      setTimeout(() => { if (waiting.delete(id)) reject(new Error("The tablet didn't answer. Is it on and connected to Wi-Fi?")); }, timeout);
     });
-  });
-
-  async function finishSignIn(q) {
-    const pkce = JSON.parse(sessionStorage.getItem('kb.pkce') || 'null');
-    history.replaceState(null, '', redirectUri);
-    if (!pkce || pkce.state !== q.get('state')) { show('v-intro'); return fail('Sign-in expired, please try again.'); }
-    sessionStorage.removeItem('kb.pkce');
-    const res = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri, client_id: CLIENT_ID, code_verifier: pkce.verifier }),
-    });
-    const t = await res.json();
-    if (!res.ok) { show('v-intro'); return fail('Spotify sign-in failed: ' + (t.error_description || t.error)); }
-    // This page never refreshes the token: the refresh token is handed to the
-    // tablet as-is, and Spotify may invalidate it once it has been used.
-    token = { at: t.access_token, rt: t.refresh_token, exp: Date.now() + t.expires_in * 1000 };
-
-    show('v-pick');
-    $('footer').hidden = false;
-    renderChosen();
-    const me = await api('/me').catch(() => null);
-    token.who = me?.display_name || me?.id || '';
-    $('who').textContent = token.who ? `Signed in as ${token.who}.` : '';
-    loadPlaylists();
+    const body = await seal({ ...cmd, id, from: 'phone' });
+    if (body.length > 4000) throw new Error('Too much to send at once; remove a few tiles or shorten names.');
+    const res = await fetch(RELAY + link.t, { method: 'POST', body });
+    if (!res.ok) throw new Error('Relay error ' + res.status);
+    return reply;
   }
 
-  async function api(path) {
-    const res = await fetch('https://api.spotify.com/v1' + path, { headers: { Authorization: 'Bearer ' + token.at } });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.error?.message || 'Spotify error ' + res.status);
-    return data;
+  async function refresh() {
+    try { clearError(); await send({ type: 'get' }); }
+    catch (e) { renderStatus(e.message); }
   }
 
-  async function loadPlaylists() {
-    const box = $('playlists');
-    try {
-      let items = [], next = '/me/playlists?limit=50';
-      while (next && items.length < 200) {
-        const page = await api(next);
-        items = items.concat(page.items.filter(Boolean));
-        next = page.next ? page.next.replace('https://api.spotify.com/v1', '') : null;
+  function onState(s) {
+    tablet = s;
+    if (s.cid && !localStorage.getItem('kb.cid')) localStorage.setItem('kb.cid', s.cid);
+    if (!dirty) { tiles = s.tiles.map(t => ({ ...t })); renderTiles(); }
+    renderStatus();
+  }
+
+  function renderStatus(problem) {
+    const box = $('status');
+    box.replaceChildren();
+    const line = (text, cls) => { const p = document.createElement('p'); p.textContent = text; if (cls) p.className = cls; box.append(p); };
+    if (problem) { line('⚠️ ' + problem, 'bad'); }
+    else if (!tablet) { line('Connecting to the tablet…'); return; }
+    else {
+      line('✅ Tablet is online', 'ok');
+      if (tablet.connected) {
+        const days = Math.max(0, 182 - Math.floor((Date.now() - tablet.since) / 864e5));
+        line(`Spotify: connected${tablet.who ? ' as ' + tablet.who : ''}. Spotify will ask to sign in again in about ${days} days.`);
+        if (!tablet.speaker) line("Speaker: couldn't check (see the problem below).", 'bad');
+        else if (tablet.speaker === 'not running') line("Speaker: the Spotify app on the tablet isn't running. Niv's music screen will offer to wake it.", 'bad');
+        else line(`Speaker: ${tablet.speaker}`);
+      } else {
+        line('Spotify: not connected. Sign in below and tap "Use this account on the tablet".', 'bad');
       }
-      if (!items.length) { box.innerHTML = '<p>No playlists found. Add music by link above.</p>'; return; }
-      box.replaceChildren(...items.map(p => {
-        const tile = { uri: p.uri, name: p.name, img: p.images?.[0]?.url || '' };
-        const b = document.createElement('button');
-        b.className = 'item';
-        b.dataset.uri = p.uri;
-        b.innerHTML = '<span class="num"></span><span class="name"></span>';
-        b.prepend(picture(tile.img));
-        b.querySelector('.name').textContent = p.name;
-        b.addEventListener('click', () => toggle(tile));
-        return b;
-      }));
-      syncList();
-    } catch (e) {
-      box.innerHTML = '';
-      const p = document.createElement('p');
-      p.textContent = "Couldn't load your playlists (" + e.message + '). You can still add music by link above.';
-      box.append(p);
+      if (tablet.lastError) line('Last problem: ' + tablet.lastError, 'bad');
     }
+    const again = document.createElement('button');
+    again.className = 'btn secondary';
+    again.textContent = 'Refresh';
+    again.style.marginTop = '8px';
+    again.onclick = () => { renderStatus(); refresh(); };
+    box.append(again);
   }
 
-  function toggle(tile) {
-    const i = chosen.findIndex(c => c.uri === tile.uri);
-    if (i >= 0) chosen.splice(i, 1);
-    else if (chosen.length < MAX_TILES) chosen.push({ ...tile });
-    else return alert(`Up to ${MAX_TILES} tiles.`);
-    renderChosen();
-  }
+  // --- Tiles ------------------------------------------------------------------
 
-  function renderChosen() {
-    $('none-chosen').hidden = chosen.length > 0;
-    $('send').disabled = !chosen.length;
-    $('chosen').replaceChildren(...chosen.map(c => {
+  const kindOf = uri => ({ playlist: 'Playlist', album: 'Album', artist: 'Artist', show: 'Podcast (episode list)', episode: 'Episode', track: 'Song' })[uri.split(':')[1]] || '';
+
+  function renderTiles() {
+    $('no-tiles').hidden = tiles.length > 0;
+    $('tiles').replaceChildren(...tiles.map((t, i) => {
       const row = document.createElement('div');
       row.className = 'row';
       const input = document.createElement('input');
-      input.value = c.name;
+      input.value = t.name;
       input.maxLength = 40;
       input.setAttribute('aria-label', 'Tile name');
-      input.addEventListener('input', () => { c.name = input.value; });
-      const x = document.createElement('button');
-      x.className = 'x';
-      x.textContent = '✕';
-      x.setAttribute('aria-label', 'Remove');
-      x.addEventListener('click', () => toggle(c));
-      row.append(picture(c.img), input, x);
+      input.addEventListener('input', () => { t.name = input.value; markDirty(); });
+      const col = document.createElement('div');
+      col.style.cssText = 'flex:1; min-width:0; display:grid; gap:2px';
+      const kind = document.createElement('span');
+      kind.className = 'kind';
+      kind.textContent = kindOf(t.uri);
+      input.style.flex = 'none';
+      col.append(input, kind);
+      const btn = (label, aria, fn, disabled) => {
+        const b = document.createElement('button');
+        b.className = 'icon'; b.textContent = label; b.setAttribute('aria-label', aria); b.disabled = disabled;
+        b.addEventListener('click', fn);
+        return b;
+      };
+      row.append(picture(t.img), col,
+        btn('▲', 'Move up', () => move(i, -1), i === 0),
+        btn('▼', 'Move down', () => move(i, 1), i === tiles.length - 1),
+        btn('✕', 'Remove', () => { tiles.splice(i, 1); markDirty(); renderTiles(); }));
       return row;
     }));
-    syncList();
   }
 
-  function syncList() {
-    for (const b of document.querySelectorAll('#playlists .item')) {
-      const i = chosen.findIndex(c => c.uri === b.dataset.uri);
-      b.classList.toggle('on', i >= 0);
-      b.querySelector('.num').textContent = i >= 0 ? i + 1 : '';
-    }
+  function move(i, d) {
+    [tiles[i], tiles[i + d]] = [tiles[i + d], tiles[i]];
+    markDirty();
+    renderTiles();
   }
+
+  function addTile(tile) {
+    if (tiles.some(t => t.uri === tile.uri)) return fail('That one is already a tile.');
+    if (tiles.length >= MAX_TILES) return fail(`Up to ${MAX_TILES} tiles.`);
+    tiles.push(tile);
+    markDirty();
+    renderTiles();
+  }
+
+  function markDirty() { dirty = true; $('footer').hidden = false; }
+
+  $('save').addEventListener('click', async () => {
+    clearError();
+    $('save').disabled = true;
+    try {
+      const clean = tiles.map(t => ({ uri: t.uri, name: t.name.trim() || '🎵', img: t.img || '' }));
+      dirty = false;
+      await send({ type: 'tiles', tiles: clean });
+      $('footer').hidden = true;
+    } catch (e) {
+      dirty = true;
+      fail("Couldn't save: " + e.message);
+    } finally { $('save').disabled = false; }
+  });
 
   function picture(src) {
     if (src) { const i = new Image(); i.src = src; i.alt = ''; return i; }
@@ -244,45 +279,135 @@
   }
 
   // Links from Spotify's Share menu; oEmbed gives the title and cover without
-  // needing any extra API permission.
+  // needing a Spotify sign-in.
   $('add-form').addEventListener('submit', async ev => {
     ev.preventDefault();
-    $('error').hidden = true;
+    clearError();
     const url = $('add-url').value.trim();
     const m = url.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(playlist|album|artist|track|show|episode)\/([A-Za-z0-9]+)/);
     if (!m) return fail("That doesn't look like a Spotify link.");
     try {
       const res = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(`https://open.spotify.com/${m[1]}/${m[2]}`));
       const o = res.ok ? await res.json() : {};
-      toggle({ uri: `spotify:${m[1]}:${m[2]}`, name: o.title || m[1], img: o.thumbnail_url || '' });
+      addTile({ uri: `spotify:${m[1]}:${m[2]}`, name: o.title || kindOf(`spotify:${m[1]}`), img: o.thumbnail_url || '' });
       $('add-url').value = '';
     } catch (e) { fail("Couldn't look up that link: " + e.message); }
   });
 
-  // Encrypt with the key from the QR code and post it to the tablet's
-  // one-time topic. ntfy.sh only ever sees ciphertext.
-  $('send').addEventListener('click', async () => {
-    $('send').disabled = true;
-    $('error').hidden = true;
-    try {
-      const tiles = chosen.map(c => ({ uri: c.uri, name: c.name.trim() || '🎵', img: c.img }));
-      const payload = { cid: CLIENT_ID, rt: token.rt, at: token.at, exp: token.exp, who: token.who, tiles };
-      const key = await crypto.subtle.importKey('raw', unb64u(pair.k), 'AES-GCM', false, ['encrypt']);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(payload)));
-      const body = b64u([...iv, ...new Uint8Array(sealed)]);
-      if (body.length > 4000) throw new Error('Too much to send at once; use fewer tiles or shorter names.');
-      const res = await fetch(RELAY + pair.t, { method: 'POST', body });
-      if (!res.ok) throw new Error('relay error ' + res.status);
-      token = null;
-      sessionStorage.removeItem('kb.pair');
-      $('footer').hidden = true;
-      show('v-done');
-    } catch (e) {
-      $('send').disabled = false;
-      fail("Couldn't send to the tablet: " + e.message);
-    }
+  // --- Your Spotify (optional) -----------------------------------------------
+
+  const clientId = () => (localStorage.getItem('kb.cid') || '').trim();
+  const token = () => { const t = JSON.parse(sessionStorage.getItem('kb.token') || 'null'); return t && t.exp > Date.now() ? t : null; };
+
+  $('signin').addEventListener('click', async () => {
+    clearError();
+    if (!$('cid-row').hidden && $('cid').value.trim()) localStorage.setItem('kb.cid', $('cid').value.trim());
+    if (!clientId()) { $('cid-row').hidden = false; return fail('Paste the Spotify Client ID first (the tablet will remember it after the first sign-in).'); }
+    const verifier = b64u(crypto.getRandomValues(new Uint8Array(48)));
+    const state = b64u(crypto.getRandomValues(new Uint8Array(16)));
+    const challenge = b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    sessionStorage.setItem('kb.pkce', JSON.stringify({ verifier, state }));
+    location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+      client_id: clientId(), response_type: 'code', redirect_uri: redirectUri, scope: SCOPES,
+      code_challenge_method: 'S256', code_challenge: challenge, state,
+    });
   });
+
+  async function finishSignIn(q) {
+    history.replaceState(null, '', redirectUri);
+    if (q.get('error')) return fail('Spotify sign-in was cancelled: ' + q.get('error'));
+    const pkce = JSON.parse(sessionStorage.getItem('kb.pkce') || 'null');
+    sessionStorage.removeItem('kb.pkce');
+    if (!pkce || pkce.state !== q.get('state')) return fail('Sign-in expired, please try again.');
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri, client_id: clientId(), code_verifier: pkce.verifier }),
+    });
+    const t = await res.json();
+    if (!res.ok) return fail('Spotify sign-in failed: ' + (t.error_description || t.error));
+    // The refresh token is kept only for this tab, and only so it can be
+    // handed to the tablet unused: Spotify may invalidate it once refreshed.
+    sessionStorage.setItem('kb.token', JSON.stringify({ at: t.access_token, rt: t.refresh_token, exp: Date.now() + t.expires_in * 1000 }));
+    showSignedIn();
+  }
+
+  async function spotify(path) {
+    const res = await fetch('https://api.spotify.com/v1' + path, { headers: { Authorization: 'Bearer ' + token().at } });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error?.message || 'Spotify error ' + res.status);
+    return data;
+  }
+
+  async function showSignedIn() {
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = false;
+    const me = await spotify('/me').catch(() => null);
+    const t = token();
+    t.who = me?.display_name || me?.id || '';
+    sessionStorage.setItem('kb.token', JSON.stringify(t));
+    $('who').textContent = t.who ? `Signed in as ${t.who}.` : '';
+    listInto('my-playlists', '/me/playlists?limit=50', p => p);
+    listInto('my-shows', '/me/shows?limit=50', s => s.show);
+  }
+
+  async function listInto(boxId, first, pick) {
+    const box = $(boxId);
+    try {
+      let items = [], next = first;
+      while (next && items.length < 200) {
+        const page = await spotify(next);
+        items = items.concat(page.items.map(pick).filter(Boolean));
+        next = page.next ? page.next.replace('https://api.spotify.com/v1', '') : null;
+      }
+      if (!items.length) { box.innerHTML = '<p>None found.</p>'; return; }
+      box.replaceChildren(...items.map(p => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = p.name;
+        const add = document.createElement('button');
+        add.className = 'btn secondary';
+        add.textContent = 'Add';
+        add.addEventListener('click', () => { clearError(); addTile({ uri: p.uri, name: p.name, img: p.images?.[0]?.url || '' }); });
+        row.append(picture(p.images?.[0]?.url), name, add);
+        return row;
+      }));
+    } catch (e) {
+      box.replaceChildren();
+      const p = document.createElement('p');
+      p.textContent = "Couldn't load (" + e.message + '). You can still add by link above.';
+      box.append(p);
+    }
+  }
+
+  // Encrypt the sign-in for the tablet alone (ECDH with the public key it
+  // publishes), so other holders of this page's link can't read it.
+  $('use-account').addEventListener('click', async () => {
+    clearError();
+    const t = token();
+    if (!t?.rt) return fail('Sign in again first.');
+    if (!tablet?.pub) return fail("The tablet hasn't answered yet; tap Refresh at the top and try again.");
+    if (!confirm(`Make ${t.who || 'this account'} the Spotify account the tablet plays from?`)) return;
+    try {
+      const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
+      const mine = await crypto.subtle.generateKey(ECDH, true, ['deriveKey']);
+      const peer = await crypto.subtle.importKey('jwk', tablet.pub, ECDH, false, []);
+      const k = await crypto.subtle.deriveKey({ name: 'ECDH', public: peer }, mine.privateKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const payload = { cid: clientId(), rt: t.rt, at: t.at, exp: t.exp, who: t.who };
+      const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(JSON.stringify(payload)));
+      const s = await send({ type: 'auth', epk: await crypto.subtle.exportKey('jwk', mine.publicKey), box: b64u([...iv, ...new Uint8Array(sealed)]) });
+      // Forget the refresh token here; the tablet owns it now.
+      delete t.rt;
+      sessionStorage.setItem('kb.token', JSON.stringify(t));
+      if (!s.connected) fail('The tablet could not use that sign-in: ' + (s.lastError || 'unknown error'));
+    } catch (e) { fail("Couldn't send to the tablet: " + e.message); }
+  });
+
+  // First sign-in: ask for the Client ID if neither the tablet nor this phone knows it.
+  if (link && !clientId()) setTimeout(() => { if (!clientId()) $('cid-row').hidden = false; }, 4000);
 </script>
 </body>
 </html>

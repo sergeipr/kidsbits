@@ -103,7 +103,7 @@
   .notice { max-width: 700px; background: #fff; border-radius: 28px; padding: 22px 26px; box-shadow: 0 6px 0 #e7c6d6; font-size: clamp(1.2rem, 3vw, 1.7rem); }
   .notice .music { margin-top: 16px; font-size: 1.6rem; padding: 18px 30px; animation: none; }
 
-  /* Parent panel: QR pairing with a phone. */
+  /* Parent panel: QR code for the phone manage page. */
   #parent { position: fixed; inset: 0; background: rgba(43, 33, 64, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
   #parent .card { background: #fff; border-radius: 28px; padding: 26px; width: min(560px, 100%); max-height: 100%; overflow: auto; direction: ltr; text-align: left; font-family: system-ui, sans-serif; }
   #parent h2 { margin: 0 0 8px; }
@@ -160,19 +160,16 @@
 <div id="parent" hidden>
   <div class="card">
     <h2>Parent settings</h2>
-    <div id="pair-status"></div>
-    <div id="pairing" hidden>
-      <p>Scan with your phone to connect Spotify and choose the music tiles.</p>
-      <div id="qr"></div>
-      <p><code id="pair-link"></code></p>
-      <p id="pair-wait">Waiting for your phone…</p>
-    </div>
+    <div id="parent-status"></div>
+    <p>Scan with your phone to manage the music: add playlists, albums and podcasts, and connect Spotify. Save the page on your phone to manage the tablet any time; anyone with that link can manage it.</p>
+    <div id="qr"></div>
+    <p><code id="manage-link"></code></p>
     <div class="row">
-      <button class="primary" id="pair-start">Connect with phone</button>
-      <button id="pair-forget" hidden>Disconnect</button>
-      <button id="parent-close">Close</button>
+      <button id="parent-close" class="primary">Close</button>
+      <button id="new-link">New link (old links stop working)</button>
+      <button id="forget" hidden>Disconnect Spotify</button>
     </div>
-    <details id="diag" hidden>
+    <details id="diag">
       <summary>Diagnostics</summary>
       <p><button id="diag-run">Check Spotify</button></p>
       <pre id="diag-out" style="white-space: pre-wrap; font-size: .8rem;"></pre>
@@ -181,20 +178,29 @@
 </div>
 
 <script>
-  // The tablet never signs in itself: a parent scans a QR code, signs in to
-  // Spotify on their phone (setup.html), and the phone sends the Spotify
-  // refresh token and the chosen tiles back here, encrypted with a key that
-  // only travels inside the QR code, through a one-time ntfy.sh topic.
+  // The tablet never signs in itself. Parents manage it from setup.html on
+  // their phones, which talks to this page through a private ntfy.sh topic.
+  // Every message is encrypted with a key that only exists here and in the
+  // manage link (inside the QR code), so ntfy.sh only ever sees ciphertext.
   const STORE = 'kidsbits.spotify';
+  const CHANNEL = 'kidsbits.channel';
   const RELAY = 'https://ntfy.sh/';
   const API = 'https://api.spotify.com/v1';
   const PLAY_ICON = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
   const PAUSE_ICON = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
 
   const $ = id => document.getElementById(id);
-  const load = () => { try { return JSON.parse(localStorage.getItem(STORE)) || null; } catch { return null; } };
-  const save = v => { try { v ? localStorage.setItem(STORE, JSON.stringify(v)) : localStorage.removeItem(STORE); } catch {} };
-  let cfg = load();
+  const load = key => { try { return JSON.parse(localStorage.getItem(key)) || null; } catch { return null; } };
+  const store = (key, v) => { try { v ? localStorage.setItem(key, JSON.stringify(v)) : localStorage.removeItem(key); } catch {} };
+  const b64u = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+  // cfg: { tiles: [{uri, name, img}], cid, rt, at, exp, who, since, dev }.
+  // Tiles can exist before Spotify is connected; rt is the Spotify sign-in.
+  let cfg = load(STORE) || { tiles: [] };
+  cfg.tiles ||= [];
+  const save = () => store(STORE, cfg);
+  const connected = () => !!cfg.rt;
 
   // Opening the Spotify app with replace() keeps the spotify: link out of the
   // page history, so the kiosk's back button doesn't reopen Spotify later.
@@ -212,9 +218,9 @@
 
   $('spotify').addEventListener('click', ev => {
     ev.preventDefault();
-    if (cfg?.tiles?.length) showMusic(); else openSpotifyApp();
+    if (connected() && cfg.tiles.length) showMusic(); else openSpotifyApp();
   });
-  $('go-home').addEventListener('click', showHome);
+  $('go-home').addEventListener('click', () => episodesOf ? showMusic() : showHome());
 
   function showHome() {
     $('music-view').hidden = true;
@@ -223,9 +229,11 @@
   }
 
   function showMusic() {
+    episodesOf = null;
     $('home-view').hidden = true;
     $('music-view').hidden = false;
-    renderTiles();
+    $('go-home').textContent = '🏠';
+    renderTiles(cfg.tiles.map(t => ({ ...t, onTap: () => tapTile(t) })));
     refreshState();
     startPolling();
   }
@@ -235,7 +243,7 @@
   class NeedsParent extends Error {}
 
   async function accessToken() {
-    if (!cfg) throw new NeedsParent();
+    if (!connected()) throw new NeedsParent();
     if (cfg.at && cfg.exp > Date.now() + 60_000) return cfg.at;
     const res = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -245,8 +253,8 @@
     if (res.status === 400 || res.status === 401) throw new NeedsParent();
     if (!res.ok) throw new Error('token ' + res.status);
     const t = await res.json();
-    cfg = { ...cfg, at: t.access_token, exp: Date.now() + t.expires_in * 1000, rt: t.refresh_token || cfg.rt };
-    save(cfg);
+    Object.assign(cfg, { at: t.access_token, exp: Date.now() + t.expires_in * 1000, rt: t.refresh_token || cfg.rt });
+    save();
     return cfg.at;
   }
 
@@ -270,11 +278,12 @@
     const usable = devices.filter(d => !d.is_restricted);
     const pick = usable.find(d => d.id === cfg.dev) || usable.find(d => d.is_active)
       || usable.find(d => d.type === 'Tablet') || usable.find(d => d.type === 'Smartphone') || usable[0];
-    if (pick && pick.id !== cfg.dev) { cfg.dev = pick.id; save(cfg); }
+    if (pick && pick.id !== cfg.dev) { cfg.dev = pick.id; save(); }
     return pick;
   }
 
   let state = null;
+  let episodesOf = null;
 
   async function act(fn) {
     try {
@@ -286,10 +295,33 @@
     } catch (e) { handle(e); }
   }
 
-  function playTile(tile) {
-    const body = /^spotify:(track|episode):/.test(tile.uri) ? { uris: [tile.uri] } : { context_uri: tile.uri };
+  function play(uri) {
+    const body = /^spotify:(track|episode):/.test(uri) ? { uris: [uri] } : { context_uri: uri };
     act(id => api('PUT', '/me/player/play?device_id=' + id, body));
   }
+
+  // A podcast tile opens its episode list; everything else plays right away.
+  function tapTile(tile) {
+    if (tile.uri.startsWith('spotify:show:')) showEpisodes(tile); else play(tile.uri);
+  }
+
+  async function showEpisodes(show) {
+    try {
+      hideNotice();
+      const page = await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=50`);
+      const items = (page?.items || []).filter(Boolean);
+      if (!items.length) return play(show.uri);
+      episodesOf = show;
+      $('go-home').textContent = '↩️';
+      renderTiles(items.map(ep => ({ uri: ep.uri, name: ep.name, img: ep.images?.[0]?.url || show.img, onTap: () => play(ep.uri) })));
+    } catch (e) {
+      // If Spotify won't list the episodes, play the show (its newest episode).
+      if (e instanceof NeedsParent) return handle(e);
+      lastError = describe(e);
+      play(show.uri);
+    }
+  }
+
   $('toggle').addEventListener('click', () => act(id => state?.is_playing
     ? api('PUT', '/me/player/pause?device_id=' + id)
     : api('PUT', '/me/player/play?device_id=' + id)));
@@ -314,22 +346,23 @@
       $('now').firstElementChild.replaceWith(picture(img, '🎵'));
       $('now').querySelector('.title').textContent = item.name;
     }
-    const ctx = state?.context?.uri;
-    for (const b of $('tiles').children) b.classList.toggle('playing', !!ctx && b.dataset.uri === ctx);
+    const playing = [state?.context?.uri, item?.uri, item?.show?.uri].filter(Boolean);
+    for (const b of $('tiles').children) b.classList.toggle('playing', playing.includes(b.dataset.uri));
   }
 
-  function renderTiles() {
-    $('tiles').replaceChildren(...cfg.tiles.map(t => {
+  function renderTiles(tiles) {
+    $('tiles').replaceChildren(...tiles.map(t => {
       const b = document.createElement('button');
       b.className = 'tile';
       b.dataset.uri = t.uri;
       const label = document.createElement('span');
       label.className = 'label';
       label.textContent = t.name;
-      b.append(picture(t.img, t.emoji || '🎵'), label);
-      b.addEventListener('click', () => playTile(t));
+      b.append(picture(t.img, '🎵'), label);
+      b.addEventListener('click', t.onTap);
       return b;
     }));
+    if (state) renderState();
   }
 
   function picture(src, fallback) {
@@ -346,14 +379,16 @@
     notice('המוזיקה ישנה. לוחצים כאן, ואז על 🏠 כדי לחזור.', 'להעיר את המוזיקה 🎵', openSpotifyApp);
   }
 
+  let lastError = '';
+  const describe = e => `${new Date().toLocaleString()}: ${e.status || ''} ${e.reason || ''} ${e.message}`.replace(/\s+/g, ' ');
+
   function handle(e) {
-    if (e instanceof NeedsParent) { stopPolling(); return notice('צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
+    if (e instanceof NeedsParent) { stopPolling(); lastError = 'Spotify sign-in expired or missing'; return notice('צריך שאבא או אמא יחברו את המוזיקה מחדש.'); }
     if (e.status === 403 && e.reason === 'PREMIUM_REQUIRED') return notice('צריך ספוטיפיי פרימיום.');
     if (e.status === 404) return wakeSpotify();
-    lastError = `${new Date().toLocaleTimeString()} ${e.status || ''} ${e.reason || ''} ${e.message}`;
+    lastError = describe(e);
     console.warn(e);
   }
-  let lastError = '';
 
   function notice(text, buttonText, onClick) {
     const n = $('notice');
@@ -374,7 +409,109 @@
   function stopPolling() { clearInterval(poller); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { hideNotice(); refreshState(); } });
 
-  // --- Parent panel and QR pairing ----------------------------------------
+  // --- Management channel ---------------------------------------------------
+
+  let channel = load(CHANNEL);
+  let channelKey, events;
+
+  async function ensureChannel() {
+    if (!channel) {
+      channel = { t: 'kidsbits-' + b64u(crypto.getRandomValues(new Uint8Array(18))), k: b64u(crypto.getRandomValues(new Uint8Array(16))) };
+      store(CHANNEL, channel);
+    }
+    channelKey = await crypto.subtle.importKey('raw', unb64u(channel.k), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  }
+
+  // The Spotify sign-in must not be readable by everyone who has the manage
+  // link (or from ntfy.sh's 12-hour cache), so phones encrypt it for this
+  // tablet alone: ECDH with a key pair whose private half never leaves here.
+  const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
+  let deviceKeys;
+  async function ensureDeviceKeys() {
+    if (deviceKeys) return deviceKeys;
+    const saved = load('kidsbits.devicekey');
+    if (saved) {
+      deviceKeys = { pub: saved.pub, priv: await crypto.subtle.importKey('jwk', saved.priv, ECDH, false, ['deriveKey']) };
+    } else {
+      const pair = await crypto.subtle.generateKey(ECDH, true, ['deriveKey']);
+      const pub = await crypto.subtle.exportKey('jwk', pair.publicKey);
+      store('kidsbits.devicekey', { pub, priv: await crypto.subtle.exportKey('jwk', pair.privateKey) });
+      deviceKeys = { pub, priv: pair.privateKey };
+    }
+    return deviceKeys;
+  }
+  async function openForDevice({ epk, box }) {
+    const { priv } = await ensureDeviceKeys();
+    const peer = await crypto.subtle.importKey('jwk', epk, ECDH, false, []);
+    const key = await crypto.subtle.deriveKey({ name: 'ECDH', public: peer }, priv, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const raw = unb64u(box);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+
+  const manageLink = () => new URL('setup.html', location.href).href + '#t=' + channel.t + '&k=' + channel.k;
+
+  async function seal(obj) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, channelKey, new TextEncoder().encode(JSON.stringify(obj)));
+    return b64u([...iv, ...new Uint8Array(sealed)]);
+  }
+  async function unseal(text) {
+    const raw = unb64u(text);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, channelKey, raw.slice(12));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+
+  // Server-sent events keep one connection open instead of polling, which
+  // stays well inside ntfy.sh's anonymous rate limits.
+  async function listen() {
+    await ensureChannel();
+    events?.close();
+    events = new EventSource(`${RELAY}${channel.t}/sse`);
+    events.onmessage = async ev => {
+      let msg;
+      try {
+        const m = JSON.parse(ev.data);
+        if (m.event !== 'message') return;
+        msg = await unseal(m.message);
+      } catch { return; }
+      if (msg.from === 'phone') await onCommand(msg);
+    };
+  }
+
+  async function onCommand(msg) {
+    if (msg.type === 'tiles' && Array.isArray(msg.tiles)) {
+      cfg.tiles = msg.tiles.map(({ uri, name, img }) => ({ uri, name, img }));
+    } else if (msg.type === 'auth' && msg.box) {
+      let a;
+      try { a = await openForDevice(msg); } catch { lastError = 'Could not read the Spotify sign-in from the phone'; }
+      if (a?.rt) {
+        Object.assign(cfg, { cid: a.cid, rt: a.rt, at: a.at, exp: a.exp, who: a.who, since: Date.now(), dev: undefined });
+        lastError = '';
+      }
+    } else if (msg.type === 'forget') {
+      cfg = { tiles: cfg.tiles };
+    }
+    if (msg.type !== 'get') {
+      save();
+      renderParent();
+      if (!$('music-view').hidden) showMusic();
+    }
+    await reply(msg.id);
+  }
+
+  async function reply(re) {
+    let speaker = null;
+    if (connected()) { try { speaker = (await device())?.name || 'not running'; } catch (e) { if (!(e instanceof NeedsParent)) lastError = describe(e); } }
+    const body = await seal({
+      from: 'tablet', type: 'state', re,
+      tiles: cfg.tiles, connected: connected(), who: cfg.who || '', since: cfg.since || 0, cid: cfg.cid || '',
+      speaker, lastError, pub: (await ensureDeviceKeys()).pub,
+    });
+    await fetch(RELAY + channel.t, { method: 'POST', body }).catch(() => {});
+  }
+
+  // --- Parent panel -----------------------------------------------------------
 
   // Hold the "Hi Niv" title for two seconds to open the parent panel.
   let holdTimer;
@@ -387,83 +524,33 @@
     $('parent').hidden = false;
     renderParent();
   }
-  $('parent-close').addEventListener('click', () => { $('parent').hidden = true; stopPairing(); });
-  $('pair-start').addEventListener('click', startPairing);
-  $('pair-forget').addEventListener('click', () => {
-    if (!confirm('Disconnect Spotify from this tablet?')) return;
-    cfg = null; save(null); renderParent(); showHome();
+  $('parent-close').addEventListener('click', () => { $('parent').hidden = true; });
+  $('new-link').addEventListener('click', async () => {
+    if (!confirm('Make a new manage link? Saved links on your phones will stop working.')) return;
+    channel = null;
+    store(CHANNEL, null);
+    await listen();
+    renderParent();
+  });
+  $('forget').addEventListener('click', () => {
+    if (!confirm('Disconnect Spotify from this tablet? The tiles stay.')) return;
+    cfg = { tiles: cfg.tiles }; save(); renderParent(); showHome();
   });
 
-  function renderParent() {
-    $('pair-status').innerHTML = '';
+  async function renderParent() {
+    if ($('parent').hidden) return;
+    const days = cfg.since ? Math.max(0, 182 - Math.floor((Date.now() - cfg.since) / 864e5)) : 0;
+    $('parent-status').innerHTML = '';
     const p = document.createElement('p');
-    p.textContent = cfg
-      ? `Connected to Spotify${cfg.who ? ' as ' + cfg.who : ''}, ${cfg.tiles.length} music tiles. Sign-in from ${new Date(cfg.since).toLocaleDateString()} (Spotify asks again after about 6 months).`
-      : 'Spotify is not connected. The music button opens the Spotify app instead.';
-    $('pair-status').append(p);
-    $('pair-forget').hidden = !cfg;
-    $('diag').hidden = !cfg;
-    $('pair-start').textContent = cfg ? 'Change tiles / reconnect' : 'Connect with phone';
+    p.textContent = (connected()
+      ? `Spotify connected${cfg.who ? ' as ' + cfg.who : ''}; Spotify will ask to sign in again in about ${days} days.`
+      : 'Spotify is not connected, so the music button opens the Spotify app.') + ` ${cfg.tiles.length} music tiles.`;
+    $('parent-status').append(p);
+    $('forget').hidden = !connected();
+    await ensureChannel();
+    $('manage-link').textContent = manageLink();
+    await showQr(manageLink());
   }
-
-  // Shows what Spotify sees, to debug playback without a browser console.
-  $('diag-run').addEventListener('click', async () => {
-    const out = [];
-    const step = async (label, fn) => {
-      try { out.push(label + ': ' + JSON.stringify(await fn(), null, 1)); }
-      catch (e) { out.push(`${label}: ERROR ${e.status || ''} ${e.reason || ''} ${e.message}`); }
-      $('diag-out').textContent = out.join('\n\n');
-    };
-    $('diag-out').textContent = 'Checking…';
-    await step('token', async () => (await accessToken(), 'ok, expires ' + new Date(cfg.exp).toLocaleTimeString()));
-    await step('devices', async () => (await api('GET', '/me/player/devices'))?.devices?.map(d => `${d.name} | ${d.type} | active=${d.is_active} restricted=${d.is_restricted}`));
-    await step('player', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
-    out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
-    out.push('last error: ' + (lastError || 'none'));
-    $('diag-out').textContent = out.join('\n\n');
-  });
-
-  const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-
-  let pairTimer;
-  async function startPairing() {
-    stopPairing();
-    const topic = 'kidsbits-' + b64u(crypto.getRandomValues(new Uint8Array(18)));
-    const keyBytes = crypto.getRandomValues(new Uint8Array(16));
-    const key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
-    const link = new URL('setup.html', location.href).href + '#t=' + topic + '&k=' + b64u(keyBytes);
-    const since = Math.floor(Date.now() / 1000) - 5;
-
-    $('pairing').hidden = false;
-    $('pair-link').textContent = link;
-    $('pair-wait').textContent = 'Waiting for your phone…';
-    await showQr(link);
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`${RELAY}${topic}/json?poll=1&since=${since}`);
-        for (const line of (await res.text()).split('\n')) {
-          if (!line.trim()) continue;
-          const msg = JSON.parse(line);
-          if (msg.event !== 'message') continue;
-          const raw = unb64u(msg.message);
-          const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
-          const data = JSON.parse(new TextDecoder().decode(plain));
-          cfg = { cid: data.cid, rt: data.rt, at: data.at, exp: data.exp, who: data.who, tiles: data.tiles, since: Date.now() };
-          save(cfg);
-          stopPairing();
-          $('pairing').hidden = true;
-          renderParent();
-          $('pair-status').firstElementChild.textContent = '✅ ' + $('pair-status').firstElementChild.textContent;
-          return;
-        }
-      } catch (e) { console.warn(e); }
-      pairTimer = setTimeout(poll, 3000);
-    };
-    poll();
-  }
-  function stopPairing() { clearTimeout(pairTimer); }
 
   async function showQr(text) {
     if (!window.qrcode) {
@@ -479,6 +566,27 @@
     qr.make();
     $('qr').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
   }
+
+  // Shows what Spotify sees, to debug playback without a browser console.
+  $('diag-run').addEventListener('click', async () => {
+    const out = [];
+    const step = async (label, fn) => {
+      try { out.push(label + ': ' + JSON.stringify(await fn(), null, 1)); }
+      catch (e) { out.push(`${label}: ERROR ${e.status || ''} ${e.reason || ''} ${e.message}`); }
+      $('diag-out').textContent = out.join('\n\n');
+    };
+    $('diag-out').textContent = 'Checking…';
+    await step('token', async () => (await accessToken(), 'ok, expires ' + new Date(cfg.exp).toLocaleTimeString()));
+    await step('devices', async () => (await api('GET', '/me/player/devices'))?.devices?.map(d => `${d.name} | ${d.type} | active=${d.is_active} restricted=${d.is_restricted}`));
+    await step('player', async () => { const p = await api('GET', '/me/player?additional_types=episode'); return p ? { device: p.device?.name, playing: p.is_playing, item: p.item?.name } : 'nothing playing (204)'; });
+    const show = cfg.tiles.find(t => t.uri.startsWith('spotify:show:'));
+    if (show) await step('episodes', async () => (await api('GET', `/shows/${show.uri.split(':')[2]}/episodes?limit=3`))?.items?.map(e => e?.name));
+    out.push('tiles: ' + cfg.tiles.map(t => t.uri).join(', '));
+    out.push('last error: ' + (lastError || 'none'));
+    $('diag-out').textContent = out.join('\n\n');
+  });
+
+  listen();
 </script>
 </body>
 </html>
