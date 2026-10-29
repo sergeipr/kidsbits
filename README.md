@@ -3,12 +3,14 @@
 A single-page website for Niv, in Hebrew, made for a kiosk tablet. No build step and no dependencies to install.
 
 - 🎧 **Music!**: once Spotify is connected, opens a simple music screen with big picture tiles and giant ⏮ ▶/⏸ ⏭ buttons. The page remote-controls the Spotify app running in the background on the same tablet, so Niv never sees Spotify's own screens. Podcast tiles open a list of episodes. Before Spotify is connected, the button just opens the Spotify app.
+- 🖍️ **Coloring page**: Niv picks one of eight coloring pages and prints it. That's one page a day; after printing, the screen says to come back tomorrow.
 - 💖 **Mom's page**: opens [Niv's page from mom](https://malissshany-cpu.github.io/family-hub/index.html).
 
 ## Files
 
 - `index.html`: Niv's page, with the music screen and a parent panel.
 - `setup.html`: the parents' phone page for managing the tablet.
+- `coloring/`: the coloring pages, as SVG line drawings.
 
 ## Managing the tablet (parents)
 
@@ -21,7 +23,15 @@ On the manage page you can:
 - **Connect the tablet's Spotify account**: sign in with the account the tablet should play from (it needs Premium) and tap **Use this account on the tablet**. Spotify asks for this again about every six months; the manage page shows how many days are left, and Niv's music screen says when a parent needs to reconnect.
 - **See the tablet's status**: whether it's online, which Spotify account it uses, whether the Spotify app is running, and the last problem it hit.
 
+- **Allow one more coloring page today**, after Niv has used up the day's print. The tablet's parent panel has the same button.
+
 Anyone with the manage link can manage the tablet's music, so only share it with family. The tablet's parent panel has **New link**, which stops all old links from working.
+
+## Printer
+
+Printing uses Android's own print dialog, which finds network printers on the Wi-Fi by itself (if yours doesn't show up, install the printer maker's print plugin, or **Mopria Print Service**, from the Play Store). Print one page yourself first and pick the printer in the dialog; Android remembers it, so Niv only has to tap the round print button. The day's print counts as soon as Niv taps **להדפיס!**, even if the dialog is cancelled, so you may need to allow one more from the manage page.
+
+To add a coloring page, put an SVG (3:4, portrait) in `coloring/` and add it to `PAGES` in `index.html`.
 
 ## Spotify developer app
 

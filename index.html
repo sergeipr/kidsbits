@@ -62,6 +62,8 @@
   .music:focus-visible { outline: 5px solid var(--blue); outline-offset: 5px; }
   .music.mom { background: var(--pink); box-shadow: 0 10px 0 #d9447a; animation-delay: -1.1s; }
   .music.mom:active { box-shadow: 0 2px 0 #d9447a; }
+  .music.color { background: var(--orange); box-shadow: 0 10px 0 #d97a1c; animation-delay: -.5s; }
+  .music.color:active { box-shadow: 0 2px 0 #d97a1c; }
   .buttons { display: flex; flex-wrap: wrap; gap: 28px 24px; justify-content: center; }
   .buttons .music { width: min(300px, 100%); }
 
@@ -173,6 +175,29 @@
     .shelf { grid-column: 2; grid-row: 2 / span 2; max-height: calc(100vh - 140px); overflow-y: auto; padding: 14px; margin: -14px; }
   }
 
+  /* Coloring pages: pick one, print it, and that's it until tomorrow. */
+  #color-view { display: grid; gap: 18px; align-content: start; padding: 18px 18px 28px; min-height: 100%; }
+  .color-title { font-size: clamp(1.8rem, 6vw, 2.8rem); margin: 0; }
+  #pages .pic { aspect-ratio: 3 / 4; background: #fff; }
+  #pages .pic img { object-fit: contain; }
+  .chosen { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  .chosen img { height: min(56vh, 115vw, 680px); aspect-ratio: 3 / 4; background: #fff; border-radius: 30px; padding: 18px; box-shadow: 0 8px 0 rgba(43, 33, 64, .14); }
+  .chosen-buttons { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: center; }
+  .chosen-buttons .music { animation: none; }
+  @media (orientation: landscape) {
+    .chosen { flex-direction: row; justify-content: center; gap: 48px; }
+    .chosen img { height: min(72vh, 680px); }
+    .chosen-buttons { flex-direction: column; }
+  }
+  #print-sheet { display: none; }
+  @media print {
+    @page { margin: 12mm; }
+    body { background: #fff; }
+    body > :not(#print-sheet) { display: none !important; }
+    #print-sheet { display: block; }
+    #print-sheet img { display: block; width: 100%; max-height: 250mm; margin: 0 auto; object-fit: contain; }
+  }
+
   /* Parent panel: QR code for the phone manage page. */
   #parent { position: fixed; inset: 0; background: rgba(43, 33, 64, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
   #parent .card { background: #fff; border-radius: 28px; padding: 26px; width: min(560px, 100%); max-height: 100%; overflow: auto; direction: ltr; text-align: left; font-family: system-ui, sans-serif; }
@@ -210,6 +235,10 @@
       <span class="icon" aria-hidden="true">💖</span>
       הדף של אמא
     </a>
+    <button class="music color" id="coloring">
+      <span class="icon" aria-hidden="true">🖍️</span>
+      דף צביעה
+    </button>
   </div>
 </main>
 
@@ -239,6 +268,23 @@
   </section>
 </main>
 
+<main id="color-view" hidden>
+  <div class="topbar">
+    <button class="round" id="color-home" aria-label="הביתה"><svg viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg></button>
+  </div>
+  <h2 class="color-title" id="color-title"></h2>
+  <div class="tiles" id="pages"></div>
+  <section class="chosen" id="chosen" hidden>
+    <img id="chosen-img" alt="">
+    <div class="chosen-buttons" id="chosen-buttons">
+      <button class="music" id="print-it"><span class="icon" aria-hidden="true">🖨️</span>להדפיס!</button>
+      <button class="back" id="choose-other"><svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6v-4.5h10v-3H10z"/></svg>ציור אחר</button>
+    </div>
+  </section>
+</main>
+
+<div id="print-sheet"><img id="print-img" alt=""></div>
+
 <div id="parent" hidden>
   <div class="card">
     <h2>Parent settings</h2>
@@ -248,6 +294,7 @@
     <p><code id="manage-link"></code></p>
     <div class="row">
       <button id="parent-close" class="primary">Close</button>
+      <button id="print-again" hidden>Allow another coloring page today</button>
       <button id="new-link">New link (old links stop working)</button>
       <button id="forget" hidden>Disconnect Spotify</button>
     </div>
@@ -317,6 +364,49 @@
     refreshState();
     startPolling();
   }
+
+  // --- Coloring pages -----------------------------------------------------------
+
+  // One printed page a day. Printing is the browser's own print dialog, so
+  // the tablet's default printer (picked once in that dialog) is used.
+  const PRINTED = 'kidsbits.printed';
+  const PAGES = [
+    { id: 'unicorn', name: 'חד קרן' }, { id: 'butterfly', name: 'פרפר' },
+    { id: 'flower', name: 'פרח' }, { id: 'rainbow', name: 'קשת' },
+    { id: 'cat', name: 'חתול' }, { id: 'fish', name: 'דג' },
+    { id: 'house', name: 'בית' }, { id: 'icecream', name: 'גלידה' },
+  ];
+  const pageSrc = id => 'coloring/' + id + '.svg';
+  const today = () => new Date().toLocaleDateString('en-CA');
+  const printedToday = () => { const p = load(PRINTED); return p?.day === today() ? PAGES.find(x => x.id === p.page) || PAGES[0] : null; };
+  let chosen = null;
+
+  $('coloring').addEventListener('click', () => { chosen = null; showColoring(); });
+  $('color-home').addEventListener('click', () => { $('color-view').hidden = true; $('home-view').hidden = false; });
+  $('choose-other').addEventListener('click', () => { chosen = null; showColoring(); });
+
+  function showColoring() {
+    $('home-view').hidden = true;
+    $('color-view').hidden = false;
+    const done = printedToday();
+    const shown = done || chosen;
+    $('color-title').textContent = done ? 'כבר הדפסנו היום! מחר אפשר עוד ציור 🌙' : chosen ? chosen.name : 'בוחרים ציור לצבוע 🖍️';
+    $('pages').hidden = !!shown;
+    $('chosen').hidden = !shown;
+    $('chosen-buttons').hidden = !!done;
+    if (shown) { $('chosen-img').src = pageSrc(shown.id); return; }
+    renderTiles(PAGES.map(p => ({ uri: p.id, name: p.name, img: pageSrc(p.id), onTap: () => { chosen = p; showColoring(); } })), $('pages'));
+  }
+
+  $('print-it').addEventListener('click', async () => {
+    if (!chosen || printedToday()) return showColoring();
+    const img = $('print-img');
+    img.src = pageSrc(chosen.id);
+    try { await img.decode(); } catch {}
+    store(PRINTED, { day: today(), page: chosen.id });
+    showColoring();
+    window.print();
+  });
 
   // --- Spotify Web API -----------------------------------------------------
 
@@ -578,8 +668,8 @@
     return [f(5), f(3), f(1)].map(v => Math.round(v * 255));
   }
 
-  function renderTiles(tiles) {
-    $('tiles').replaceChildren(...tiles.map((t, i) => {
+  function renderTiles(tiles, box = $('tiles')) {
+    box.replaceChildren(...tiles.map((t, i) => {
       const b = document.createElement('button');
       b.className = 'tile';
       b.dataset.uri = t.key || t.uri;
@@ -728,6 +818,9 @@
         Object.assign(cfg, { cid: a.cid, rt: a.rt, at: a.at, exp: a.exp, who: a.who, since: Date.now(), dev: undefined });
         lastError = '';
       }
+    } else if (msg.type === 'print-again') {
+      store(PRINTED, null);
+      if (!$('color-view').hidden) showColoring();
     } else if (msg.type === 'forget') {
       cfg = { tiles: cfg.tiles };
     }
@@ -745,7 +838,7 @@
     const body = await seal({
       from: 'tablet', type: 'state', re,
       tiles: cfg.tiles, connected: connected(), who: cfg.who || '', since: cfg.since || 0, cid: cfg.cid || '',
-      speaker, lastError, pub: (await ensureDeviceKeys()).pub,
+      speaker, lastError, printed: printedToday()?.id || '', pub: (await ensureDeviceKeys()).pub,
     });
     await fetch(RELAY + channel.t, { method: 'POST', body }).catch(() => {});
   }
@@ -771,6 +864,11 @@
     await listen();
     renderParent();
   });
+  $('print-again').addEventListener('click', () => {
+    store(PRINTED, null);
+    if (!$('color-view').hidden) showColoring();
+    renderParent();
+  });
   $('forget').addEventListener('click', () => {
     if (!confirm('Disconnect Spotify from this tablet? The tiles stay.')) return;
     cfg = { tiles: cfg.tiles }; save(); renderParent(); showHome();
@@ -784,7 +882,11 @@
     p.textContent = (connected()
       ? `Spotify connected${cfg.who ? ' as ' + cfg.who : ''}; Spotify will ask to sign in again in about ${days} days.`
       : 'Spotify is not connected, so the music button opens the Spotify app.') + ` ${cfg.tiles.length} music tiles.`;
-    $('parent-status').append(p);
+    const printed = printedToday();
+    const pp = document.createElement('p');
+    pp.textContent = printed ? `Coloring page printed today: ${printed.id}.` : 'No coloring page printed yet today.';
+    $('parent-status').append(p, pp);
+    $('print-again').hidden = !printed;
     $('forget').hidden = !connected();
     await ensureChannel();
     $('manage-link').textContent = manageLink();

@@ -78,6 +78,11 @@
       <button class="btn secondary" id="use-account">Use this account on the tablet</button>
     </div>
 
+    <h2>Coloring pages</h2>
+    <p>Niv can print one coloring page a day from the tablet, on the printer chosen in the tablet's print dialog.</p>
+    <div class="card"><p id="printed">…</p>
+      <button class="btn secondary" id="print-again" hidden>Allow one more today</button></div>
+
     <h2>About this page</h2>
     <p>Add it to your home screen to manage the tablet any time. Anyone with this page's link can manage the tablet's music, so only share it with family. The tablet's parent panel can make a new link, which stops old ones from working.</p>
   </section>
@@ -175,6 +180,8 @@
     tablet = s;
     if (s.cid && !localStorage.getItem('kb.cid')) localStorage.setItem('kb.cid', s.cid);
     if (!dirty) { tiles = s.tiles.map(t => ({ ...t })); renderTiles(); }
+    $('printed').textContent = s.printed ? `Printed today: ${s.printed}.` : 'Nothing printed yet today.';
+    $('print-again').hidden = !s.printed;
     renderStatus();
   }
 
@@ -268,6 +275,12 @@
       dirty = true;
       fail("Couldn't save: " + e.message);
     } finally { $('save').disabled = false; }
+  });
+
+  $('print-again').addEventListener('click', async () => {
+    clearError();
+    try { await send({ type: 'print-again' }); }
+    catch (e) { fail("Couldn't reach the tablet: " + e.message); }
   });
 
   function picture(src) {
