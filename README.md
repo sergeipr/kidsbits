@@ -4,6 +4,7 @@ A single-page website for Niv, in Hebrew, made for a kiosk tablet. No build step
 
 - 🎧 **Music!**: once Spotify is connected, opens a simple music screen with big picture tiles and giant ⏮ ▶/⏸ ⏭ buttons. The page remote-controls the Spotify app running in the background on the same tablet, so Niv never sees Spotify's own screens. Podcast tiles open a list of episodes. Before Spotify is connected, the button just opens the Spotify app.
 - 💖 **Mom's page**: opens [Niv's page from mom](https://malissshany-cpu.github.io/family-hub/index.html).
+- 🔤 **Alef-bet**: opens `alefbet.html`, a colorful Hebrew alphabet sheet with a picture for every letter. It fits the screen, and the print button prints it on one A4 page.
 
 ## Files
 
