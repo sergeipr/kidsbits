@@ -5,11 +5,18 @@ A single-page website for Niv, in Hebrew, made for a kiosk tablet. No build step
 - 🎧 **Music!**: once Spotify is connected, opens a simple music screen with big picture tiles and giant ⏮ ▶/⏸ ⏭ buttons. The page remote-controls the Spotify app running in the background on the same tablet, so Niv never sees Spotify's own screens. Podcast tiles open a list of episodes. Before Spotify is connected, the button just opens the Spotify app.
 - 💖 **Mom's page**: opens [Niv's page from mom](https://malissshany-cpu.github.io/family-hub/index.html).
 - 🔤 **Alef-bet**: opens `alefbet.html`, a colorful Hebrew alphabet sheet with a picture for every letter. It fits the screen, and the print button prints it on one A4 page.
+- 🐠 **Aquarium**: opens `aquarium.html`. Niv prints a fish colouring sheet (A4, landscape), paints it, and points the tablet's camera at it; the fish is cut out of the photo and starts swimming in the tank. Tapping a fish makes it dart away, tapping the water drops food. The tank keeps up to 20 fish on the tablet; holding a fish for a few seconds lets a parent remove it.
 
 ## Files
 
 - `index.html`: Niv's page, with the music screen and a parent panel.
 - `setup.html`: the parents' phone page for managing the tablet.
+- `alefbet.html`: the alef-bet sheet.
+- `aquarium.html`: the aquarium, its colouring sheets and the camera scanner.
+
+## Aquarium notes
+
+The kiosk browser has to allow camera access for the page. The four corner marks and the strip of blocks at the top of each sheet are how the page finds and straightens the sheet, so the whole sheet has to be in the picture and the marks should stay unpainted. The photo is taken automatically once the sheet is in view and held still. Fish are stored only on the tablet (in the browser's storage for this site); clearing the browser's site data empties the tank.
 
 ## Managing the tablet (parents)
 

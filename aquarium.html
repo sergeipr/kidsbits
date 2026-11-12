@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>האקווריום</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐠</text></svg>">
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; background: #1583c4; touch-action: none;
+    font-family: "Rubik", "Arial Hebrew", Arial, sans-serif;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  [hidden] { display: none !important; }
+  #tank { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .round {
+    width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    background: #fff; color: #2b2140; box-shadow: 0 6px 0 rgba(13, 40, 80, .3);
+    display: grid; place-items: center; text-decoration: none;
+  }
+  .round svg { width: 46%; height: 46%; fill: currentColor; }
+  .round:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(13, 40, 80, .3); }
+  .round:focus-visible { outline: 5px solid #ffd93b; outline-offset: 4px; }
+  .bar { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 16px; pointer-events: none; }
+  .bar > * { pointer-events: auto; }
+  #snap {
+    position: fixed; left: 20px; bottom: 20px; width: 116px; height: 116px;
+    background: #ff6b9d; color: #fff; box-shadow: 0 8px 0 #c93f73;
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  #snap:active { box-shadow: 0 2px 0 #c93f73; }
+
+  .overlay { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; }
+  .dim { background: rgba(8, 30, 60, .72); }
+  .card { background: #fff; border-radius: 32px; padding: 24px; width: min(760px, 100%); max-height: 100%; overflow: auto; text-align: center; color: #2b2140; }
+  .card h2 { margin: 0 0 16px; font-size: 1.8rem; font-weight: 800; }
+  #picker .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  #picker button.tpl { border: 4px solid #cfe6fb; border-radius: 22px; background: #f4faff; padding: 8px; cursor: pointer; }
+  #picker button.tpl:active { transform: scale(.97); border-color: #4d96ff; }
+  #picker svg { width: 100%; height: auto; display: block; }
+  .row { display: flex; gap: 28px; justify-content: center; align-items: center; margin-top: 18px; }
+  .big { width: 110px; height: 110px; }
+  .ok { background: #2fbf71; color: #fff; box-shadow: 0 8px 0 #1e8e51; }
+  .no { background: #ff5d5d; color: #fff; box-shadow: 0 8px 0 #c93a3a; }
+
+  /* Camera: full-screen preview; the page snaps by itself when it sees the sheet. */
+  #cam { background: #000; padding: 0; }
+  #cam video, #cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #cam video { object-fit: cover; }
+  #cam .guide {
+    position: absolute; inset: 9% 7%; border: 6px dashed rgba(255, 255, 255, .75); border-radius: 28px;
+    transition: border-color .15s;
+  }
+  #cam.seen .guide { border-color: #5cf08a; border-style: solid; }
+  #cam .hint { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; color: #fff; font-size: 1.5rem; font-weight: 700; text-shadow: 0 2px 6px #000; }
+  #cam .bar { z-index: 2; }
+  #cam.oops .guide { animation: shake .4s; border-color: #ff7b7b; }
+
+  #result { background: radial-gradient(circle at 50% 40%, #6fd3f2, #1670b8); }
+  #result img { width: min(70vw, 105vh); height: auto; animation: bob 2.4s ease-in-out infinite; filter: drop-shadow(0 14px 14px rgba(0, 30, 70, .35)); }
+  #result .inner { display: flex; flex-direction: column; align-items: center; }
+  #gone img { width: min(320px, 60vw); height: auto; }
+
+  #print-sheet { display: none; }
+  @page { size: A4 landscape; margin: 0; }
+  @media print {
+    html, body { height: auto; overflow: visible; background: #fff; }
+    body > *:not(#print-sheet) { display: none !important; }
+    #print-sheet { display: block; width: 297mm; height: 209mm; overflow: hidden; page-break-inside: avoid; }
+    #print-sheet svg { width: 100%; height: 100%; display: block; }
+  }
+
+  @keyframes pulse { 50% { scale: 1.07; } }
+  @keyframes bob { 50% { transform: translateY(-14px) rotate(-2deg); } }
+  @keyframes shake { 25% { transform: translateX(-12px); } 75% { transform: translateX(12px); } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="tank"></canvas>
+
+<div class="bar">
+  <a class="round" href="index.html" aria-label="הביתה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg></a>
+  <button class="round" id="print" type="button" aria-label="להדפיס דף צביעה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4H7zM5 8h14a3 3 0 0 1 3 3v6h-4v4H6v-4H2v-6a3 3 0 0 1 3-3zm3 8v3h8v-3z"/></svg></button>
+</div>
+<button class="round" id="snap" type="button" aria-label="לצלם דג"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l1.5 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5zm3 4.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg></button>
+
+<div class="overlay dim" id="picker" hidden>
+  <div class="card">
+    <h2>איזה דג להדפיס?</h2>
+    <div class="grid" id="picker-grid"></div>
+    <div class="row"><button class="round" id="picker-close" type="button" aria-label="לסגור"><svg viewBox="0 0 24 24"><path d="M5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12z"/></svg></button></div>
+  </div>
+</div>
+
+<div class="overlay" id="cam" hidden>
+  <video playsinline muted></video>
+  <canvas></canvas>
+  <div class="guide"></div>
+  <div class="hint">שמים את כל הדף בתוך המסגרת</div>
+  <div class="bar"><button class="round" id="cam-close" type="button" aria-label="לסגור"><svg viewBox="0 0 24 24"><path d="M5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12z"/></svg></button></div>
+</div>
+<input type="file" id="file" accept="image/*" capture="environment" hidden>
+
+<div class="overlay" id="result" hidden>
+  <div class="inner">
+    <img alt="">
+    <div class="row">
+      <button class="round big no" id="retry" type="button" aria-label="לצלם שוב"><svg viewBox="0 0 24 24"><path d="M12 5V1.5L7 6l5 4.5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+      <button class="round big ok" id="accept" type="button" aria-label="לאקווריום!"><svg viewBox="0 0 24 24"><path d="M9.2 16.6 4.6 12 3 13.6l6.2 6.2L21 8l-1.6-1.6z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay dim" id="gone" hidden>
+  <div class="card" style="width: min(460px, 100%)">
+    <h2>להוציא את הדג מהאקווריום?</h2>
+    <img alt="">
+    <div class="row">
+      <button class="round big ok" id="gone-no" type="button" aria-label="להשאיר"><svg viewBox="0 0 24 24"><path d="M5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12z"/></svg></button>
+      <button class="round big no" id="gone-yes" type="button" aria-label="להוציא"><svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4zM6 9h12l-1 12H7z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div id="print-sheet"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  // ───────────────────────── Colouring sheets ─────────────────────────
+  // A sheet is A4 landscape, in CSS pixels. Four bullseye marks sit in the
+  // corners so a photo can be straightened; a strip of cells at the top says
+  // which template it is and which way up the sheet is. Every creature is
+  // drawn in a 900×560 box, facing right.
+  const SW = 1123, SH = 794, MARK = 70;
+  const CORNERS = [[65, 65], [SW - 65, 65], [SW - 65, SH - 65], [65, SH - 65]];
+  const BOX = { x: 111, y: 127, w: 900, h: 560 };
+  const STRIP = { x: 441.5, y: 30, cell: 24 };
+  const WHITE = [[65, 250], [65, 540], [SW - 65, 250], [SW - 65, 540], [250, 65], [870, 65]];
+  const OUT = 0.75;                                    // scanned fish are 675×420
+  const OW = BOX.w * OUT, OH = BOX.h * OUT;
+  const stripBits = id => [1, 0, 1, id >> 2 & 1, id >> 1 & 1, id & 1, ~id >> 2 & 1, ~id >> 1 & 1, ~id & 1, 1];
+
+  const TEMPLATES = [
+    { name: 'דג', colors: ['#ff9f43', '#ffd93b'],
+      d: 'M860 280C820 150 700 85 600 80C560 30 470 10 400 30C420 60 420 90 400 115C340 140 290 170 240 220C180 170 110 120 40 110C70 180 80 230 70 280C80 330 70 380 40 450C110 440 180 390 240 340C300 410 380 460 470 470C640 490 820 410 860 280Z',
+      lines: 'M640 170Q590 280 640 390M540 300Q470 330 495 385Q555 375 585 320ZM800 325Q822 342 848 322M110 200Q150 280 110 360M160 235Q180 280 160 325M420 108Q500 60 590 82M440 200q30 30 0 60M360 240q30 30 0 60M440 300q30 30 0 60M360 340q30 30 0 60',
+      eye: [735, 225, 30] },
+    { name: 'דג מלאך', colors: ['#c77dff', '#ff8fab'],
+      d: 'M850 280C800 220 720 170 640 150C600 80 520 20 400 10C440 80 430 130 400 170C330 200 280 240 250 270C200 230 130 190 50 180C90 240 90 320 50 380C130 370 200 330 250 290C280 320 330 360 400 390C430 430 440 480 400 550C520 540 600 480 640 410C720 390 800 340 850 280Z',
+      lines: 'M630 152Q595 280 630 408M510 120Q475 280 510 440M405 172Q385 280 405 388M800 300Q815 312 835 298M100 230Q130 280 100 330',
+      eye: [735, 250, 26] },
+    { name: 'לווייתן', colors: ['#4d96ff', '#9be7ff'],
+      d: 'M870 300C870 180 740 100 580 100C420 100 300 170 230 260C190 250 150 210 140 150C110 170 80 170 40 140C30 220 80 290 150 320C200 420 340 480 520 480C700 480 870 420 870 300Z',
+      lines: 'M868 335Q780 385 690 352M560 395Q520 465 440 455Q470 400 525 380ZM300 420Q420 400 480 470M360 380Q480 365 560 400M140 150Q150 210 120 250',
+      eye: [765, 290, 20] },
+    { name: 'דג נפוח', colors: ['#2fbf71', '#f9f871'],
+      d: 'M720 280C720 150 620 50 490 50C370 50 280 130 258 235C215 205 165 175 100 165C132 215 138 250 132 280C138 310 132 345 100 395C165 385 215 355 258 325C280 430 370 510 490 510C620 510 720 410 720 280Z',
+      lines: 'M690 300a18 20 0 1 0 36 0a18 20 0 1 0-36 0M480 300Q415 325 435 380Q490 370 520 318ZM360 150l14-34 14 34M470 110l14-34 14 34M580 150l14-34 14 34M330 260l14-34 14 34M360 420l14-34 14 34M470 460l14-34 14 34M580 420l14-34 14 34M140 215Q165 280 140 345',
+      eye: [625, 205, 36] },
+  ];
+  TEMPLATES.forEach(t => { t.path = new Path2D(t.d); t.linePath = new Path2D(t.lines); });
+
+  function sheetSvg(id, plain) {
+    const t = TEMPLATES[id];
+    const mark = ([cx, cy]) => {
+      const m = MARK / 7, x = cx - MARK / 2, y = cy - MARK / 2;
+      return `<rect x="${x}" y="${y}" width="${MARK}" height="${MARK}"/><rect x="${x + m}" y="${y + m}" width="${5 * m}" height="${5 * m}" fill="#fff"/><rect x="${x + 2 * m}" y="${y + 2 * m}" width="${3 * m}" height="${3 * m}"/>`;
+    };
+    const strip = stripBits(id).map((b, i) => b ? `<rect x="${STRIP.x + i * STRIP.cell}" y="${STRIP.y}" width="${STRIP.cell + .5}" height="${STRIP.cell}"/>` : '').join('');
+    const [ex, ey, er] = t.eye;
+    const fish = `<g transform="translate(${BOX.x} ${BOX.y})" fill="none" stroke="#111" stroke-linejoin="round" stroke-linecap="round">
+      <path d="${t.d}" stroke-width="9" fill="#fff"/><path d="${t.lines}" stroke-width="4" stroke="#555"/>
+      <circle cx="${ex}" cy="${ey}" r="${er}" stroke-width="5" fill="#fff"/><circle cx="${ex + er * .25}" cy="${ey}" r="${er * .5}" fill="#111" stroke="none"/></g>`;
+    if (plain) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${BOX.x - 20} ${BOX.y - 20} ${BOX.w + 40} ${BOX.h + 40}">${fish}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"><rect width="${SW}" height="${SH}" fill="#fff"/>
+      <g fill="#000">${CORNERS.map(mark).join('')}${strip}</g>${fish}
+      <text x="${SW / 2}" y="${SH - 34}" text-anchor="middle" direction="rtl" font-family="Rubik, Arial, sans-serif" font-weight="700" font-size="24" fill="#777">צובעים את ה${t.name}, מצלמים בטאבלט – והוא שוחה באקווריום!</text></svg>`;
+  }
+
+  // ───────────────────────── Reading a photo ─────────────────────────
+  // Homography that maps src[i] to dst[i] (four point pairs).
+  function homography(src, dst) {
+    const A = [];
+    for (let i = 0; i < 4; i++) {
+      const [x, y] = src[i], [u, v] = dst[i];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u], [0, 0, 0, x, y, 1, -v * x, -v * y, v]);
+    }
+    for (let c = 0; c < 8; c++) {
+      let p = c;
+      for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+      if (Math.abs(A[p][c]) < 1e-9) return null;
+      [A[c], A[p]] = [A[p], A[c]];
+      for (let r = 0; r < 8; r++) if (r !== c) {
+        const f = A[r][c] / A[c][c];
+        for (let k = c; k < 9; k++) A[r][k] -= f * A[c][k];
+      }
+    }
+    return A.map((row, i) => row[8] / row[i]);
+  }
+  const project = (h, x, y) => { const d = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / d, (h[3] * x + h[4] * y + h[5]) / d]; };
+
+  // Finds the sheet in a (small) frame. Returns { marks } with every bullseye
+  // seen, plus { h, tpl } (sheet → frame mapping, template id) when all four
+  // are there and the strip reads cleanly.
+  function findSheet(img) {
+    const { width: w, height: h, data } = img, n = w * h;
+    const lum = new Uint8Array(n), W1 = w + 1;
+    const integ = new Uint32Array(W1 * (h + 1));
+    for (let y = 0, i = 0; y < h; y++) {
+      let row = 0;
+      for (let x = 0; x < w; x++, i++) {
+        const l = (data[i * 4] * 77 + data[i * 4 + 1] * 150 + data[i * 4 + 2] * 29) >> 8;
+        lum[i] = l; row += l;
+        integ[(y + 1) * W1 + x + 1] = integ[y * W1 + x + 1] + row;
+      }
+    }
+    // Dark = clearly darker than its neighbourhood, so shadows don't matter.
+    const r = Math.max(8, Math.round(w / 10)), dark = new Uint8Array(n);
+    for (let y = 0, i = 0; y < h; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+      for (let x = 0; x < w; x++, i++) {
+        const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+        const sum = integ[y1 * W1 + x1] - integ[y0 * W1 + x1] - integ[y1 * W1 + x0] + integ[y0 * W1 + x0];
+        if (lum[i] * (x1 - x0) * (y1 - y0) < sum * 0.7) dark[i] = 1;
+      }
+    }
+    // Connected dark blobs.
+    const seen = new Uint8Array(n), stack = new Int32Array(n), blobs = [];
+    for (let s = 0; s < n; s++) {
+      if (!dark[s] || seen[s]) continue;
+      let top = 0, area = 0, sx = 0, sy = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+      stack[top++] = s; seen[s] = 1;
+      while (top) {
+        const i = stack[--top], x = i % w, y = (i - x) / w;
+        area++; sx += x; sy += y;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && dark[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; stack[top++] = i - 1; }
+        if (x < w - 1 && dark[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; stack[top++] = i + 1; }
+        if (y > 0 && dark[i - w] && !seen[i - w]) { seen[i - w] = 1; stack[top++] = i - w; }
+        if (y < h - 1 && dark[i + w] && !seen[i + w]) { seen[i + w] = 1; stack[top++] = i + w; }
+      }
+      if (area >= 5) blobs.push({ area, cx: sx / area, cy: sy / area, x0, x1, y0, y1, bw: x1 - x0 + 1, bh: y1 - y0 + 1 });
+    }
+    // A bullseye is a square ring with a dot sitting in its middle.
+    let marks = [];
+    for (const ring of blobs) {
+      const { bw, bh } = ring, fill = ring.area / (bw * bh);
+      if (bw < 10 || bh < 10 || bw > bh * 2.2 || bh > bw * 2.2 || fill < 0.28 || fill > 0.72) continue;
+      const tol = Math.max(bw, bh) * 0.16;
+      const dot = blobs.find(d => d !== ring && d.x0 > ring.x0 && d.x1 < ring.x1 && d.y0 > ring.y0 && d.y1 < ring.y1 &&
+        Math.abs(d.cx - ring.cx) < tol && Math.abs(d.cy - ring.cy) < tol && d.area > ring.area * 0.12 && d.area < ring.area * 0.8);
+      if (dot) marks.push({ x: (ring.cx + dot.cx) / 2, y: (ring.cy + dot.cy) / 2, size: ring.area });
+    }
+    marks.sort((a, b) => b.size - a.size);
+    marks = marks.slice(0, 4);
+    const out = { marks };
+    if (marks.length < 4) return out;
+    // Clockwise around the middle, then find which mark is the top-left one:
+    // only the right turn of the sheet reads the strip correctly.
+    const mx = (marks[0].x + marks[1].x + marks[2].x + marks[3].x) / 4, my = (marks[0].y + marks[1].y + marks[2].y + marks[3].y) / 4;
+    const ring = marks.map(m => [m.x, m.y]).sort((a, b) => Math.atan2(a[1] - my, a[0] - mx) - Math.atan2(b[1] - my, b[0] - mx));
+    for (let k = 0; k < 4; k++) {
+      const hm = homography(CORNERS, [0, 1, 2, 3].map(i => ring[(i + k) % 4]));
+      if (!hm) continue;
+      const bits = [];
+      for (let i = 0; i < 10; i++) {
+        const [x, y] = project(hm, STRIP.x + (i + .5) * STRIP.cell, STRIP.y + STRIP.cell / 2);
+        const xi = Math.round(x), yi = Math.round(y);
+        bits.push(xi >= 0 && yi >= 0 && xi < w && yi < h ? dark[yi * w + xi] : -1);
+      }
+      const id = bits[3] << 2 | bits[4] << 1 | bits[5];
+      if (bits.join('') === stripBits(id).join('') && TEMPLATES[id]) { out.h = hm; out.tpl = id; break; }
+    }
+    return out;
+  }
+
+  // Straightens the photo and cuts the creature out along its known outline.
+  // `full` is the full-size frame, `h` maps sheet → that frame.
+  function cutOut(full, h, tpl) {
+    const { width: w, height: ht, data } = full;
+    const at = (x, y, c) => data[(Math.min(ht - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))) * 4 + c];
+    // White paper next to the marks tells us the colour of the room's light.
+    const white = [0, 0, 0];
+    for (const [sx, sy] of WHITE) {
+      const [px, py] = project(h, sx, sy).map(Math.round);
+      for (let c = 0; c < 3; c++) { let s = 0; for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) s += at(px + dx, py + dy, c); white[c] += s / 49 / WHITE.length; }
+    }
+    const gain = white.map(v => Math.min(3, 246 / Math.max(40, v)));
+    const cv = document.createElement('canvas'); cv.width = OW; cv.height = OH;
+    const ctx = cv.getContext('2d'), out = ctx.createImageData(OW, OH), o = out.data;
+    for (let v = 0, i = 0; v < OH; v++) for (let u = 0; u < OW; u++, i += 4) {
+      const [fx, fy] = project(h, BOX.x + (u + .5) / OUT, BOX.y + (v + .5) / OUT);
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), ax = fx - x0, ay = fy - y0;
+      const px = [0, 0, 0];
+      for (let c = 0; c < 3; c++) {
+        px[c] = ((at(x0, y0, c) * (1 - ax) + at(x0 + 1, y0, c) * ax) * (1 - ay) + (at(x0, y0 + 1, c) * (1 - ax) + at(x0 + 1, y0 + 1, c) * ax) * ay) * gain[c];
+      }
+      const l = px[0] * .3 + px[1] * .59 + px[2] * .11;        // a little extra colour: paper photographs dull
+      for (let c = 0; c < 3; c++) o[i + c] = l + (px[c] - l) * 1.25;
+      o[i + 3] = 255;
+    }
+    ctx.putImageData(out, 0, 0);
+    const t = TEMPLATES[tpl];
+    ctx.scale(OUT, OUT);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fill(t.path);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 11; ctx.strokeStyle = '#1d2433';
+    ctx.stroke(t.path);                                       // a clean edge over the printed one
+    return cv;
+  }
+
+  // A ready-coloured fish, shown while the tank is still nearly empty.
+  function sampleFish(tpl) {
+    const t = TEMPLATES[tpl], cv = document.createElement('canvas'); cv.width = OW; cv.height = OH;
+    const ctx = cv.getContext('2d');
+    ctx.scale(OUT, OUT); ctx.lineJoin = ctx.lineCap = 'round';
+    const g = ctx.createLinearGradient(0, 60, 0, 500); g.addColorStop(0, t.colors[0]); g.addColorStop(1, t.colors[1]);
+    ctx.fillStyle = g; ctx.fill(t.path);
+    ctx.strokeStyle = 'rgba(29,36,51,.45)'; ctx.lineWidth = 5; ctx.stroke(t.linePath);
+    ctx.strokeStyle = '#1d2433'; ctx.lineWidth = 11; ctx.stroke(t.path);
+    const [ex, ey, er] = t.eye;
+    ctx.fillStyle = '#fff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(ex, ey, er, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1d2433'; ctx.beginPath(); ctx.arc(ex + er * .25, ey, er * .5, 0, 7); ctx.fill();
+    return cv;
+  }
+
+  // ───────────────────────── Saved fish ─────────────────────────
+  const MAX_FISH = 20;
+  const db = new Promise((res, rej) => {
+    const rq = indexedDB.open('aquarium', 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('fish', { keyPath: 'id' });
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  });
+  const tx = async (mode, fn) => { const d = await db; return new Promise((res, rej) => { const t = d.transaction('fish', mode), rq = fn(t.objectStore('fish')); t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); }); };
+  const dbAll = () => tx('readonly', s => s.getAll()).catch(() => []);
+  const dbPut = rec => tx('readwrite', s => s.put(rec)).catch(() => {});
+  const dbDel = id => tx('readwrite', s => s.delete(id)).catch(() => {});
+
+  // ───────────────────────── The tank ─────────────────────────
+  const tank = $('tank'), g = tank.getContext('2d');
+  let W = 0, H = 0, DPR = 1, bg = null, sandY = 0, topY = 0, fishLen = 0;
+  const fishes = [], bubbles = [], food = [], motes = [], weeds = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const seeded = s => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+  // Light: soft slanted shafts from the surface, and a rippling net of
+  // bright lines ("caustics") that slides over the sand.
+  const ray = document.createElement('canvas'); ray.width = 64; ray.height = 256;
+  {
+    const c = ray.getContext('2d'), v = c.createLinearGradient(0, 0, 0, 256);
+    v.addColorStop(0, 'rgba(255,255,255,1)'); v.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = v; c.fillRect(0, 0, 64, 256);
+    const hz = c.createLinearGradient(0, 0, 64, 0);
+    hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(.5, 'rgba(0,0,0,1)'); hz.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalCompositeOperation = 'destination-in'; c.fillStyle = hz; c.fillRect(0, 0, 64, 256);
+  }
+  const caustic = document.createElement('canvas'); caustic.width = caustic.height = 256;
+  {
+    const c = caustic.getContext('2d'), im = c.createImageData(256, 256), k = Math.PI * 2 / 256;
+    for (let y = 0, i = 0; y < 256; y++) for (let x = 0; x < 256; x++, i += 4) {
+      const a = Math.sin(k * (2 * x + y) + 1.7 * Math.sin(k * (3 * y - x)));
+      const b = Math.sin(k * (3 * y - 2 * x) + 1.9 * Math.sin(k * (2 * x + 2 * y)) + 2);
+      const d = Math.sin(k * (x + 4 * y) + 1.5 * Math.sin(k * 3 * x) + 4);
+      const v = Math.pow(1 - Math.min(Math.abs(a), Math.abs(b), Math.abs(d)), 7);
+      im.data[i] = 255; im.data[i + 1] = 250; im.data[i + 2] = 215; im.data[i + 3] = v * 255;
+    }
+    c.putImageData(im, 0, 0);
+  }
+  let causticPat = null;
+  const sandTop = x => sandY + Math.sin(x / W * 9) * H * .012 + Math.sin(x / W * 23 + 1) * H * .006;
+
+  function paintBackground() {
+    bg = document.createElement('canvas'); bg.width = tank.width; bg.height = tank.height;
+    const c = bg.getContext('2d'), r = seeded(7);
+    c.scale(DPR, DPR);
+    const water = c.createLinearGradient(0, 0, 0, H);
+    water.addColorStop(0, '#8eeaf2'); water.addColorStop(.18, '#3fc1e6'); water.addColorStop(.6, '#1a86cc'); water.addColorStop(1, '#0c4c94');
+    c.fillStyle = water; c.fillRect(0, 0, W, H);
+    // Far-away hills fade into the water, which gives the tank depth.
+    for (let layer = 0; layer < 2; layer++) {
+      c.fillStyle = layer ? 'rgba(12,70,130,.42)' : 'rgba(20,95,160,.3)';
+      c.beginPath(); c.moveTo(0, H);
+      const base = sandY - H * (layer ? .02 : .08), amp = H * (layer ? .09 : .13), ph = r() * 9;
+      for (let x = 0; x <= W; x += 8) c.lineTo(x, base - amp * (.5 + .5 * Math.sin(x / W * (layer ? 11 : 6) + ph)) * (.6 + .4 * Math.sin(x / W * 3.1 + ph * 2)));
+      c.lineTo(W, H); c.fill();
+    }
+    // Sand.
+    const sand = c.createLinearGradient(0, sandY, 0, H);
+    sand.addColorStop(0, '#f6e3b0'); sand.addColorStop(1, '#cfa765');
+    c.fillStyle = sand; c.beginPath(); c.moveTo(0, H);
+    for (let x = 0; x <= W + 6; x += 6) c.lineTo(x, sandTop(x));
+    c.lineTo(W + 6, H); c.fill();
+    for (let i = 0; i < 500; i++) {
+      const x = r() * W, y = sandTop(x) + 4 + r() * (H - sandY);
+      c.fillStyle = r() < .5 ? 'rgba(160,120,60,.28)' : 'rgba(255,250,225,.5)';
+      c.fillRect(x, y, 1.5 + r() * 2, 1.5 + r() * 2);
+    }
+    // Rocks, coral, pebbles and a starfish.
+    const u = Math.min(W, H) / 100;
+    const rock = (x, y, rx, ry) => {
+      const gr = c.createLinearGradient(0, y - ry, 0, y + ry); gr.addColorStop(0, '#8fa3b8'); gr.addColorStop(1, '#4d6079');
+      c.fillStyle = gr; c.beginPath(); c.ellipse(x, y, rx, ry, 0, Math.PI, 0); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.22)'; c.beginPath(); c.ellipse(x - rx * .3, y - ry * .55, rx * .3, ry * .16, -.3, 0, 7); c.fill();
+    };
+    const coral = (x, y, len, ang, wd, col, depth) => {
+      const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+      c.strokeStyle = col; c.lineWidth = wd; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x2, y2); c.stroke();
+      if (depth) for (const da of [-.5 - r() * .3, .1 * (r() - .5), .5 + r() * .3]) if (r() < .85) coral(x2, y2, len * .72, ang + da, wd * .74, col, depth - 1);
+    };
+    rock(W * .16, sandTop(W * .16) + u * 2, u * 11, u * 7); rock(W * .23, sandTop(W * .23) + u * 2, u * 6, u * 4);
+    rock(W * .83, sandTop(W * .83) + u * 2, u * 9, u * 6);
+    coral(W * .72, sandTop(W * .72) + u, u * 5.2, -Math.PI / 2, u * 1.9, '#ff7a90', 4);
+    coral(W * .9, sandTop(W * .9) + u, u * 4, -Math.PI / 2, u * 1.6, '#ffab5c', 4);
+    coral(W * .07, sandTop(W * .07) + u, u * 3.6, -Math.PI / 2, u * 1.4, '#c98bff', 3);
+    for (let i = 0; i < 14; i++) {
+      const x = r() * W, y = sandTop(x) + (H - sandY) * (.25 + r() * .7);
+      c.fillStyle = ['#b9c4d0', '#e9d9c4', '#9aa9bb', '#f2b6a0'][i % 4];
+      c.beginPath(); c.ellipse(x, y, u * (1 + r() * 1.4), u * (.6 + r() * .6), 0, 0, 7); c.fill();
+    }
+    const sx = W * .58, sy = sandY + (H - sandY) * .55;
+    c.fillStyle = '#ff8a5c'; c.strokeStyle = '#d9603a'; c.lineWidth = u * .35; c.lineJoin = 'round'; c.beginPath();
+    for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2 + .2, rr = u * (i % 2 ? 1.5 : 3.6); c.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr * .8); }
+    c.closePath(); c.fill(); c.stroke();
+    // Darker corners, like looking through glass.
+    const vg = c.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .45, W / 2, H * .45, Math.max(W, H) * .78);
+    vg.addColorStop(0, 'rgba(4,25,60,0)'); vg.addColorStop(1, 'rgba(4,25,60,.45)');
+    c.fillStyle = vg; c.fillRect(0, 0, W, H);
+  }
+
+  function layout() {
+    DPR = Math.min(devicePixelRatio || 1, 1.5);
+    W = innerWidth; H = innerHeight;
+    tank.width = Math.round(W * DPR); tank.height = Math.round(H * DPR);
+    sandY = H * .84; topY = H * .1; fishLen = Math.min(W * .2, H * .36);
+    paintBackground();
+    causticPat = g.createPattern(caustic, 'repeat');
+    const r = seeded(11);
+    weeds.length = 0;
+    for (let i = 0; i < 16; i++) {
+      const front = i % 3 === 0, x = (i + .2 + r() * .6) / 16 * W;
+      weeds.push({ x, front, h: H * (front ? .2 + r() * .16 : .14 + r() * .2), w: Math.min(W, H) * (front ? .022 : .015), ph: r() * 7, hue: 110 + r() * 50 });
+    }
+    motes.length = 0;
+    for (let i = 0; i < 46; i++) motes.push({ x: r() * W, y: r() * H, r: .8 + r() * 1.8, v: 3 + r() * 9, ph: r() * 7 });
+    fishes.forEach(makeSprite);
+  }
+
+  // Each fish is drawn once at its own size, tinted towards the water colour
+  // the further back it swims.
+  function makeSprite(f) {
+    const len = fishLen * (.55 + .45 * f.z) * f.grow;
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(8, Math.round(len * DPR)); cv.height = Math.max(8, Math.round(len * OH / OW * DPR));
+    const c = cv.getContext('2d');
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(f.src, 0, 0, cv.width, cv.height);
+    c.globalCompositeOperation = 'source-atop';
+    c.fillStyle = `rgba(30,130,200,${(1 - f.z) * .42})`; c.fillRect(0, 0, cv.width, cv.height);
+    f.sprite = cv; f.len = len; f.ht = len * OH / OW;
+  }
+
+  function addFish(src, opts = {}) {
+    const z = opts.z ?? Math.random();
+    const f = {
+      id: opts.id ?? null, tpl: opts.tpl, src, z, grow: rnd(.85, 1.1),
+      x: opts.x ?? rnd(W * .15, W * .85), y: opts.y ?? rnd(topY + H * .08, sandY - H * .12),
+      vx: rnd(-1, 1) * W * .04, vy: 0, face: Math.random() < .5 ? -1 : 1, phase: rnd(0, 7),
+      speed: rnd(.045, .075), tx: 0, ty: 0, until: 0, dart: 0, full: 0,
+    };
+    makeSprite(f); fishes.push(f);
+    return f;
+  }
+  function puff(x, y, count, spread) {
+    for (let i = 0; i < count; i++) bubbles.push({ x: x + rnd(-spread, spread), y: y + rnd(-spread, spread) * .5, r: rnd(2, 7), v: rnd(40, 110), ph: rnd(0, 7) });
+  }
+
+  let last = 0, clock = 0;
+  function step(now) {
+    requestAnimationFrame(step);
+    const dt = Math.min(.05, (now - last) / 1000 || 0); last = now; clock += dt;
+    const t = clock;
+
+    // ── move ──
+    for (const f of fishes) {
+      let hungry = null, best = 1e9;
+      if (f.full < t) for (const p of food) { const d = Math.hypot(p.x - f.x, p.y - f.y); if (d < best) { best = d; hungry = p; } }
+      if (hungry) {
+        f.tx = hungry.x; f.ty = hungry.y;
+        if (best < f.len * .3) { food.splice(food.indexOf(hungry), 1); f.full = t + 1.2; puff(f.x + f.face * f.len * .4, f.y, 3, 4); }
+      } else if (t > f.until || Math.hypot(f.tx - f.x, f.ty - f.y) < f.len * .3) {
+        f.tx = rnd(W * .08, W * .92); f.ty = rnd(topY + H * .08, sandY - H * .08); f.until = t + rnd(5, 11);
+      }
+      const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy) || 1;
+      const sp = W * f.speed * (hungry ? 2.4 : 1);
+      const k = f.dart > t ? .4 : 1.6;
+      f.vx += (dx / d * sp - f.vx) * dt * k; f.vy += (dy / d * sp * .7 - f.vy) * dt * k;
+      f.x += f.vx * dt; f.y += f.vy * dt + Math.sin(t * 1.3 + f.phase) * H * .0004;
+      f.y = Math.max(topY + f.ht * .3, Math.min(sandY - f.ht * .25, f.y));
+      if (Math.abs(f.vx) > W * .006) f.face += (Math.sign(f.vx) - f.face) * Math.min(1, dt * 5);
+      f.phase += dt * (3.5 + Math.hypot(f.vx, f.vy) / W * 55);
+    }
+    for (const p of food) { if (p.y < sandTop(p.x) + 6) { p.y += p.v * dt; p.x += Math.sin(t * 3 + p.ph) * 12 * dt; } else p.rest = (p.rest || 0) + dt; }
+    for (let i = food.length - 1; i >= 0; i--) if (food[i].rest > 8) food.splice(i, 1);
+    if (Math.random() < dt * 5) { const s = [.3, .64][Math.random() * 2 | 0] * W; bubbles.push({ x: s + rnd(-6, 6), y: sandTop(s), r: rnd(2, 6), v: rnd(50, 100), ph: rnd(0, 7) }); }
+    for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; b.y -= b.v * dt; b.x += Math.sin(t * 4 + b.ph) * 14 * dt; if (b.y < topY * .7) bubbles.splice(i, 1); }
+
+    // ── draw ──
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(bg, 0, 0);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // Ripples of light on the sand: two copies of the net sliding past each other.
+    g.save();
+    g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 24) g.lineTo(x, sandTop(x)); g.lineTo(W, H); g.clip();
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = causticPat;
+    for (const [sx, sy, a, sc] of [[14, 5, .3, 1.5], [-9, 7, .22, 2.1]]) {
+      g.globalAlpha = a; g.save(); g.translate(t * sx % (256 * sc), t * sy % (256 * sc)); g.scale(sc, sc * .55);
+      g.fillRect(-256, (sandY - H * .03) / (sc * .55) - 256, W / sc + 512, (H - sandY) / (sc * .55) + 512); g.restore();
+    }
+    g.restore();
+
+    const weed = wd => {
+      g.strokeStyle = wd.front ? `hsl(${wd.hue} 55% 34%)` : `hsl(${wd.hue + 40} 45% 30% / .75)`;
+      g.lineWidth = wd.w; g.lineCap = 'round'; g.beginPath();
+      const base = sandTop(wd.x) + 6; g.moveTo(wd.x, base);
+      for (let s = 1; s <= 6; s++) { const q = s / 6; g.lineTo(wd.x + Math.sin(t * 1.1 + wd.ph + q * 2.6) * wd.h * .16 * q, base - wd.h * q); }
+      g.stroke();
+    };
+    weeds.forEach(wd => wd.front || weed(wd));
+
+    g.fillStyle = 'rgba(255,255,255,.35)';
+    for (const m of motes) { m.y -= m.v * dt; if (m.y < 0) m.y = H; g.beginPath(); g.arc(m.x + Math.sin(t * .5 + m.ph) * 14, m.y, m.r, 0, 7); g.fill(); }
+
+    fishes.sort((a, b) => a.z - b.z);
+    for (const f of fishes) {            // soft shadows on the sand
+      const sy = sandTop(f.x) + (H - sandY) * (.15 + f.z * .6), near = 1 - Math.min(1, (sy - f.y) / H);
+      g.fillStyle = `rgba(60,40,10,${.06 + near * .1})`;
+      g.beginPath(); g.ellipse(f.x, sy, f.len * .4 * Math.abs(f.face), f.len * .05, 0, 0, 7); g.fill();
+    }
+    for (const f of fishes) {
+      // The picture is drawn in thin upright slices; a wave runs down them
+      // from head to tail, strongest at the tail.
+      const N = 22, sw = f.sprite.width / N, dw = f.len / N, sp = Math.hypot(f.vx, f.vy) / W;
+      g.save(); g.translate(f.x, f.y);
+      g.rotate(Math.max(-.45, Math.min(.45, Math.atan2(f.vy, Math.abs(f.vx) + W * .02) * .7)) * Math.sign(f.face || 1));
+      g.scale(f.face, 1);
+      for (let i = 0; i < N; i++) {
+        const q = 1 - (i + .5) / N, off = Math.sin(f.phase - q * 3.2) * q * q * f.ht * (.07 + Math.min(.08, sp * 1.2));
+        g.drawImage(f.sprite, i * sw, 0, sw, f.sprite.height, -f.len / 2 + i * dw, -f.ht / 2 + off, dw + .6, f.ht);
+      }
+      if (f.hold) { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, f.len * .5, -Math.PI / 2, -Math.PI / 2 + Math.min(1, (performance.now() - f.hold) / HOLD_MS) * Math.PI * 2); g.stroke(); }
+      g.restore();
+    }
+
+    g.fillStyle = '#e39a3b';
+    for (const p of food) { g.beginPath(); g.arc(p.x, p.y, 5, 0, 7); g.fill(); }
+    for (const b of bubbles) {
+      g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1.5; g.fillStyle = 'rgba(255,255,255,.14)';
+      g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(b.x - b.r * .35, b.y - b.r * .35, b.r * .22, 0, 7); g.fill();
+    }
+    weeds.forEach(wd => wd.front && weed(wd));
+
+    // Shafts of sunlight, swaying slowly.
+    g.globalCompositeOperation = 'screen';
+    for (let i = 0; i < 6; i++) {
+      const x = W * (.06 + i * .17) + Math.sin(t * .23 + i * 1.9) * W * .03, wd = W * (.07 + (i % 3) * .035);
+      g.globalAlpha = .13 + .07 * Math.sin(t * .6 + i * 2.3);
+      g.setTransform(DPR, 0, DPR * (-.32 + Math.sin(t * .17 + i) * .05), DPR, x * DPR, 0);
+      g.drawImage(ray, -wd / 2, 0, wd, H * .86);
+    }
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+
+    // The surface, seen from below: a bright wobbling band.
+    const surf = g.createLinearGradient(0, 0, 0, topY);
+    surf.addColorStop(0, 'rgba(255,255,255,.85)'); surf.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = surf; g.beginPath(); g.moveTo(0, 0);
+    for (let x = 0; x <= W + 16; x += 16) g.lineTo(x, topY * (.55 + .2 * Math.sin(x / W * 14 + t * 1.4) + .12 * Math.sin(x / W * 31 - t * 2.1)));
+    g.lineTo(W, 0); g.fill();
+  }
+
+  // ── touch: tap a fish and it darts off, tap the water to feed, hold a fish to remove it ──
+  const HOLD_MS = 2500;
+  let press = null;
+  const fishAt = (x, y) => { for (let i = fishes.length - 1; i >= 0; i--) { const f = fishes[i]; if (((x - f.x) / (f.len * .5)) ** 2 + ((y - f.y) / (f.ht * .5)) ** 2 < 1) return f; } };
+  tank.addEventListener('pointerdown', e => {
+    const f = fishAt(e.clientX, e.clientY);
+    if (!f) { for (let i = 0; i < 4; i++) food.push({ x: e.clientX + rnd(-22, 22), y: e.clientY + rnd(-14, 14), v: rnd(28, 46), ph: rnd(0, 7) }); if (food.length > 40) food.splice(0, food.length - 40); return; }
+    press = { f, timer: f.id ? setTimeout(() => { f.hold = 0; press = null; askRemove(f); }, HOLD_MS) : 0 };
+    if (f.id) f.hold = performance.now();
+  });
+  const release = () => {
+    if (!press) return;
+    const { f, timer } = press; clearTimeout(timer); f.hold = 0; press = null;
+    const a = rnd(0, Math.PI * 2);
+    f.vx = Math.cos(a) * W * .5; f.vy = Math.sin(a) * H * .25; f.dart = clock + .5; f.until = 0;
+    puff(f.x, f.y, 7, f.len * .25);
+  };
+  tank.addEventListener('pointerup', release); tank.addEventListener('pointercancel', release); tank.addEventListener('pointerleave', release);
+
+  let leaving = null;
+  function askRemove(f) { leaving = f; $('gone').querySelector('img').src = f.src.toDataURL(); $('gone').hidden = false; }
+  $('gone-no').onclick = () => { $('gone').hidden = true; };
+  $('gone-yes').onclick = () => { $('gone').hidden = true; fishes.splice(fishes.indexOf(leaving), 1); dbDel(leaving.id); fillWithSamples(); };
+
+  // Ready-made fish keep the tank lively until three of her own are in it.
+  function fillWithSamples() {
+    const want = Math.max(0, 3 - fishes.filter(f => f.id).length);
+    let have = fishes.filter(f => !f.id).length;
+    for (let i = fishes.length - 1; i >= 0 && have > want; i--) if (!fishes[i].id) { fishes.splice(i, 1); have--; }
+    for (; have < want; have++) addFish(sampleFish(have % TEMPLATES.length), { tpl: have, z: .2 + have * .25 });
+  }
+
+  // ───────────────────────── Printing ─────────────────────────
+  $('picker-grid').innerHTML = TEMPLATES.map((t, i) => `<button class="tpl" type="button" data-tpl="${i}" aria-label="${t.name}">${sheetSvg(i, true)}</button>`).join('');
+  $('print').onclick = () => { $('picker').hidden = false; };
+  $('picker-close').onclick = () => { $('picker').hidden = true; };
+  $('picker-grid').onclick = e => {
+    const b = e.target.closest('[data-tpl]'); if (!b) return;
+    $('print-sheet').innerHTML = sheetSvg(+b.dataset.tpl);
+    $('picker').hidden = true;
+    setTimeout(() => print(), 50);
+  };
+
+  // ───────────────────────── Camera ─────────────────────────
+  const cam = $('cam'), video = cam.querySelector('video'), marksCv = cam.querySelector('canvas');
+  const SMALL = 800, grab = document.createElement('canvas'), small = document.createElement('canvas');
+  let stream = null, scanTimer = 0, steady = 0, lastPts = null, pending = null;
+
+  function readFrame(source, sw, sh) {
+    grab.width = sw; grab.height = sh;
+    const gc = grab.getContext('2d', { willReadFrequently: true }); gc.drawImage(source, 0, 0, sw, sh);
+    const k = Math.min(1, SMALL / Math.max(sw, sh));
+    small.width = Math.round(sw * k); small.height = Math.round(sh * k);
+    const sc = small.getContext('2d', { willReadFrequently: true }); sc.drawImage(grab, 0, 0, small.width, small.height);
+    const found = findSheet(sc.getImageData(0, 0, small.width, small.height));
+    found.k = k;
+    found.cut = () => {
+      const full = homography(CORNERS, CORNERS.map(([x, y]) => project(found.h, x, y).map(v => v / k)));
+      return cutOut(gc.getImageData(0, 0, sw, sh), full, found.tpl);
+    };
+    return found;
+  }
+
+  async function openCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    } catch { $('file').click(); return; }               // no live camera: use the system camera instead
+    video.srcObject = stream; await video.play().catch(() => {});
+    cam.hidden = false; steady = 0; lastPts = null;
+    scanTimer = setInterval(scan, 160);
+  }
+  function closeCamera() {
+    clearInterval(scanTimer); scanTimer = 0;
+    stream && stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null;
+    cam.hidden = true; cam.classList.remove('seen');
+  }
+  function scan() {
+    const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return;
+    const found = readFrame(video, vw, vh);
+    // Show what the page sees: a dot on every corner mark it has found.
+    const cw = cam.clientWidth, ch = cam.clientHeight, sc = Math.max(cw / vw, ch / vh), ox = (cw - vw * sc) / 2, oy = (ch - vh * sc) / 2;
+    marksCv.width = cw; marksCv.height = ch;
+    const mc = marksCv.getContext('2d');
+    for (const m of found.marks) { mc.fillStyle = 'rgba(92,240,138,.85)'; mc.beginPath(); mc.arc(m.x / found.k * sc + ox, m.y / found.k * sc + oy, 22, 0, 7); mc.fill(); }
+    cam.classList.toggle('seen', !!found.h);
+    if (!found.h) { steady = 0; lastPts = null; return; }
+    // Wait until the sheet is big enough and has stopped moving, so the photo is sharp.
+    const pts = CORNERS.map(([x, y]) => project(found.h, x, y));
+    const wide = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) > small.width * .45;
+    const still = lastPts && pts.every((p, i) => Math.hypot(p[0] - lastPts[i][0], p[1] - lastPts[i][1]) < small.width * .012);
+    lastPts = pts; steady = wide && still ? steady + 1 : 0;
+    if (steady >= 3) { const cut = found.cut(); const tpl = found.tpl; closeCamera(); showResult(cut, tpl); }
+  }
+  $('file').onchange = async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    const bmp = await createImageBitmap(file).catch(() => null); if (!bmp) return;
+    const k = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    const found = readFrame(bmp, Math.round(bmp.width * k), Math.round(bmp.height * k));
+    if (found.h) showResult(found.cut(), found.tpl); else { $('snap').animate([{ transform: 'translateX(-12px)' }, { transform: 'translateX(12px)' }, { transform: 'none' }], 400); }
+  };
+
+  function showResult(cut, tpl) { pending = { cut, tpl }; $('result').querySelector('img').src = cut.toDataURL(); $('result').hidden = false; }
+  $('snap').onclick = openCamera;
+  $('cam-close').onclick = closeCamera;
+  $('retry').onclick = () => { $('result').hidden = true; pending = null; openCamera(); };
+  $('accept').onclick = async () => {
+    $('result').hidden = true;
+    const { cut, tpl } = pending; pending = null;
+    const id = Date.now(), z = rnd(.55, 1);
+    const f = addFish(cut, { id, tpl, z, x: W / 2, y: topY });       // dives in from the surface
+    f.vy = H * .5; f.tx = W / 2; f.ty = H * .5; f.until = clock + 3;
+    puff(W / 2, topY + 20, 26, 60);
+    cut.toBlob(blob => blob && dbPut({ id, tpl, z, blob }), 'image/png');
+    // Keep the tank at 20: the oldest fish swims off.
+    const own = fishes.filter(x => x.id).sort((a, b) => a.id - b.id);
+    while (own.length > MAX_FISH) { const old = own.shift(); fishes.splice(fishes.indexOf(old), 1); dbDel(old.id); }
+    fillWithSamples();
+  };
+  document.addEventListener('visibilitychange', () => { if (document.hidden && stream) closeCamera(); });
+
+  // ───────────────────────── Start ─────────────────────────
+  addEventListener('resize', layout);
+  layout();
+  (async () => {
+    navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {});
+    for (const rec of await dbAll()) {
+      const bmp = await createImageBitmap(rec.blob).catch(() => null); if (!bmp) continue;
+      const cv = document.createElement('canvas'); cv.width = OW; cv.height = OH; cv.getContext('2d').drawImage(bmp, 0, 0, OW, OH);
+      addFish(cv, { id: rec.id, tpl: rec.tpl, z: rec.z });
+    }
+    fillWithSamples();
+  })();
+  requestAnimationFrame(step);
+
+  window.aquarium = { sheetSvg, fishes };                 // for tests
+})();
+</script>
+</body>
+</html>
